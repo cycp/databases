@@ -37,7 +37,7 @@ CREATE VIEW q1iv(birthyear, avgheight, count)
 AS
   SELECT birthyear, AVG(height), COUNT(*)
   FROM master
-  WHERE AVG(height) > 70
+  WHERE AVG(height) > 70 
   GROUP BY birthyear
   ORDER BY birthyear
 ;
