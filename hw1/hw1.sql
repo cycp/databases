@@ -37,8 +37,8 @@ CREATE VIEW q1iv(birthyear, avgheight, count)
 AS
   SELECT birthyear, AVG(height), COUNT(*)
   FROM master
-  WHERE AVG(height) > 70 
   GROUP BY birthyear
+  HAVING AVG(height)>70
   ORDER BY birthyear
 ;
 
@@ -57,15 +57,15 @@ CREATE VIEW q2ii(namefirst, namelast, playerid, schoolid, yearid)
 AS
   SELECT m.namefirst, m.namelast, m.playerid, h.yearid
   FROM master m, halloffame h, schools s, collegeplaying c
-  WHERE m.playerid = h.playerid AND m.playerid = c.playerid AND h.inducted = 'Y' AND c.schoolid = s.schoolid AND s.schoolstate = "CA"
-  ORDER BY yearid DESC, schoolid ASC, playerid ASC
+  WHERE m.playerid = h.playerid AND m.playerid = c.playerid AND h.inducted = 'Y' AND c.schoolid = s.schoolid AND s.schoolstate = 'CA'
+  ORDER BY h.yearid DESC, s.schoolid ASC, m.playerid ASC
 ;
 
 -- Question 2iii
 CREATE VIEW q2iii(playerid, namefirst, namelast, schoolid)
 AS
-  SELECT m.playerid, m.namefirst, m.namelast, s.schoolid
-  FROM master m, schools s, halloffame h
+  SELECT DISTINCT m.playerid, m.namefirst, m.namelast, s.schoolid
+  FROM (SELECT DISTINCT playerid FROM master) m, schools s, halloffame h
   WHERE m.playerid = h.playerid AND h.inducted = 'Y'
   ORDER BY m.playerid DESC, s.schoolid ASC
 ;
@@ -73,7 +73,11 @@ AS
 -- Question 3i
 CREATE VIEW q3i(playerid, namefirst, namelast, yearid, slg)
 AS
-  SELECT 1, 1, 1, 1, 1 -- replace this line
+  SELECT b.playerid, m.namefirst, m.namelast, b.yearid, ((h-h2b-h3b-hr)+2*h2b+3*h3b+4*hr)/ab as slg
+  FROM batting b, master m
+  WHERE b.ab > 50 and m.playerid = b.playerid
+  ORDER BY slg DESC, yearid, playerid
+  LIMIT 10
 ;
 
 -- Question 3ii
