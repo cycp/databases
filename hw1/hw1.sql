@@ -3,49 +3,71 @@ DROP VIEW IF EXISTS q0, q1i, q1ii, q1iii, q1iv, q2i, q2ii, q2iii, q3i, q3ii, q3i
 -- Question 0
 CREATE VIEW q0(era) 
 AS
-  SELECT 1 -- replace this line
+  SELECT MAX(era)
+  FROM pitching
 ;
 
 -- Question 1i
 CREATE VIEW q1i(namefirst, namelast, birthyear)
 AS
-  SELECT 1, 1, 1 -- replace this line
+  SELECT namefirst, namelast, birthyear
+  FROM master
+  WHERE weight > 300
 ;
 
 -- Question 1ii
 CREATE VIEW q1ii(namefirst, namelast, birthyear)
 AS
-  SELECT 1, 1, 1 -- replace this line
+  SELECT namefirst, namelast, birthyear
+  FROM master
+  WHERE namefirst LIKE '% %'
 ;
 
 -- Question 1iii
 CREATE VIEW q1iii(birthyear, avgheight, count)
 AS
-  SELECT 1, 1, 1 -- replace this line
+  SELECT birthyear, AVG(height), COUNT(*)
+  FROM master
+  GROUP BY birthyear
+  ORDER BY birthyear
 ;
 
 -- Question 1iv
 CREATE VIEW q1iv(birthyear, avgheight, count)
 AS
-  SELECT 1, 1, 1 -- replace this line
+  SELECT birthyear, AVG(height), COUNT(*)
+  FROM master
+  WHERE AVG(height) > 70
+  GROUP BY birthyear
+  ORDER BY birthyear
 ;
 
 -- Question 2i
 CREATE VIEW q2i(namefirst, namelast, playerid, yearid)
 AS
-  SELECT 1, 1, 1, 1 -- replace this line
+  SELECT m.namefirst, m.namelast, m.playerid, h.yearid
+  FROM master m, halloffame h
+  WHERE m.playerid = h.playerid AND h.inducted = 'Y'
+  ORDER BY yearid DESC
+
 ;
 
 -- Question 2ii
 CREATE VIEW q2ii(namefirst, namelast, playerid, schoolid, yearid)
 AS
-  SELECT 1, 1, 1, 1, 1 -- replace this line
+  SELECT m.namefirst, m.namelast, m.playerid, h.yearid
+  FROM master m, halloffame h, schools s, collegeplaying c
+  WHERE m.playerid = h.playerid AND m.playerid = c.playerid AND h.inducted = 'Y' AND c.schoolid = s.schoolid AND s.schoolstate = "CA"
+  ORDER BY yearid DESC, schoolid ASC, playerid ASC
 ;
 
 -- Question 2iii
 CREATE VIEW q2iii(playerid, namefirst, namelast, schoolid)
 AS
-  SELECT 1, 1, 1, 1 -- replace this line
+  SELECT m.playerid, m.namefirst, m.namelast, s.schoolid
+  FROM master m, schools s, halloffame h
+  WHERE m.playerid = h.playerid AND h.inducted = 'Y'
+  ORDER BY m.playerid DESC, s.schoolid ASC
 ;
 
 -- Question 3i
