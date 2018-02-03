@@ -55,61 +55,76 @@ AS
 -- Question 2ii
 CREATE VIEW q2ii(namefirst, namelast, playerid, schoolid, yearid)
 AS
-  SELECT m.namefirst, m.namelast, m.playerid, h.yearid
+  SELECT m.namefirst, m.namelast, m.playerid, s.schoolid, h.yearid
   FROM master m, halloffame h, schools s, collegeplaying c
-  WHERE m.playerid = h.playerid AND m.playerid = c.playerid AND h.inducted = 'Y' AND c.schoolid = s.schoolid AND s.schoolstate = 'CA'
+  WHERE m.playerid = h.playerid AND m.playerid = c.playerid 
+    AND h.inducted = 'Y' AND c.schoolid = s.schoolid 
+    AND s.schoolstate = 'CA'
   ORDER BY h.yearid DESC, s.schoolid ASC, m.playerid ASC
 ;
 
 -- Question 2iii
 CREATE VIEW q2iii(playerid, namefirst, namelast, schoolid)
 AS
-  SELECT m.playerid, m.namefirst, m.namelast, s.schoolid
-  FROM (SELECT DISTINCT playerid FROM master) m(playerid), schools s, halloffame h
-  WHERE m.playerid = h.playerid AND h.inducted = 'Y'
-  ORDER BY m.playerid DESC, s.schoolid ASC
+  SELECT m.playerid, m.namefirst, m.namelast, s.schoolid 
+  FROM master m
+    JOIN halloffame h
+      ON m.playerid = h.playerid AND h.inducted = 'Y'
+    LEFT OUTER JOIN collegeplaying c
+      ON m.playerid = c.playerid
+    LEFT OUTER JOIN schools s 
+      ON c.schoolid = s.schoolid
+    ORDER BY m.playerid DESC, s.schoolid ASC
 ;
 
 -- Question 3i
 CREATE VIEW q3i(playerid, namefirst, namelast, yearid, slg)
 AS
-  SELECT b.playerid, m.namefirst, m.namelast, b.yearid, 
-    (s.one + 2*s.two + 3*s.three + 4*s.hr) * 1.0 / s.ab as slg
-  FROM batting b, master m, 
-    (SELECT h-h2b-h3b-hr as one, 2*h2b as two, 3*h3b as three, 
-    4*hr as hr, ab FROM batting) s
-  WHERE b.ab > 50 and m.playerid = b.playerid
-  ORDER BY slg DESC, yearid, playerid
+  SELECT b.playerid, m.namefirst, m.namelast, b.yearid,
+    ((h-h2b-h3b-hr) + 2*h2b + 3*h3b + 4*hr)*1.0/ab as slg
+  FROM batting b, master m
+  WHERE m.playerid = b.playerid and b.ab > 50
+  ORDER BY slg DESC, b.yearid, m.playerid
   LIMIT 10
 ;
 
 -- Question 3ii
 CREATE VIEW q3ii(playerid, namefirst, namelast, lslg)
 AS
-  SELECT playerid, namefirst, namelast, 
-    (sums.h - sums.h2b - sums.h3b - sums.hr + 2*sums.h2b + 3*sums.h3b + 
-      4*sums.hr)*1.0/sums.ab as lslg
-  FROM batting, 
-    (SELECT SUM(h) h, SUM(h2b) h2b, SUM(h3b) h3b, SUM(hr) hr, SUM(ab) ab FROM batting
-      GROUP BY playerid) as sums
-  WHERE sums.ab > 50 and b.playerid = sums.playerid
-  GROUP BY playerid
-  ORDER BY lslg DESC, playerid
+  SELECT b.playerid, m.namefirst, m.namelast, 
+    ((SUM(h)-SUM(h2b)-SUM(h3b)-SUM(hr)) + 2*SUM(h2b) + 
+    3*SUM(h3b) + 4*SUM(hr))*1.0/SUM(ab) as lslg
+  FROM batting b, master m
+  WHERE m.playerid = b.playerid
+  GROUP BY m.playerid, b.playerid, m.namefirst, m.namelast
+  HAVING SUM(b.ab) > 50
+  ORDER BY lslg DESC, m.playerid
   LIMIT 10
 ;
 
 -- Question 3iii
 CREATE VIEW q3iii(namefirst, namelast, lslg)
 AS
-  SELECT 1, 1, 1 -- replace this line
-  FROM (SELECT  FROM batting WHERE playerid=mayswi01) as mays
-  WHERE lslg > 
+
+  WITH 
+  SELECT m.namefirst, m.namelast, 
+    (SUM(h)-SUM(h2b)-SUM(h3b)-SUM(hr) + 2*SUM(h2b) + 
+    3*SUM(h3b) + 4*SUM(hr))*1.0/SUM(ab) as lslg 
+  FROM batting b, master m
+  WHERE m.playerid = b.playerid 
+  GROUP BY m.playerid
+  HAVING SUM(b.ab) > 50 and (SUM(h)-SUM(h2b)-SUM(h3b)-SUM(hr) + 2*SUM(h2b) + 
+    3*SUM(h3b) + 4*SUM(hr))*1.0/SUM(ab) > ANY 
+      (SELECT ((SUM(h)-SUM(h2b)-SUM(h3b)-SUM(hr)) + 2*SUM(h2b) + 
+        3*SUM(h3b) + 4*SUM(hr))*1.0/SUM(ab) 
+      FROM batting
+      WHERE playerid = 'mayswi01')
 ;
 
 -- Question 4i
 CREATE VIEW q4i(yearid, min, max, avg, stddev)
 AS
-  SELECT yearid, MIN(salary), MAX(salary), AVG(salary), STDEV(salary)
+  SELECT yearid, MIN(salary), MAX(salary), AVG(salary), STDDEV(salary)
   FROM salaries 
   GROUP BY yearid
   ORDER BY yearid
@@ -118,23 +133,38 @@ AS
 -- Question 4ii
 CREATE VIEW q4ii(binid, low, high, count)
 AS
-  SELECT width_bucket(salary, MIN(salary), MAX(salary)+1,10) - 1 as binid,
-   MIN(salary), MAX(salary), COUNT(*)
-  WHERE yearid = 2016
-  FROM salaries
+  SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, 
+    MIN(salary), MAX(salary), COUNT(*)
+  FROM salaries,
+    (SELECT MIN(salary), MAX(salary)
+      FROM salaries WHERE yearid=2016) bounds
+  WHERE yearid=2016
   GROUP BY binid
+  ORDER BY binid
 ;
 
 -- Question 4iii
 CREATE VIEW q4iii(yearid, mindiff, maxdiff, avgdiff)
 AS
-  SELECT 1, 1, 1, 1 -- replace this line
+  SELECT curr.yearid, MIN(curr.salary) - MIN(prev.salary), 
+    MAX(curr.salary) - MAX(prev.salary), AVG(curr.salary) - AVG(prev.salary)
+  FROM salaries prev, salaries curr
+  WHERE curr.yearid - 1 = prev.yearid
+  GROUP BY curr.yearid
+  ORDER BY yearid
 ;
 
 -- Question 4iv
 CREATE VIEW q4iv(playerid, namefirst, namelast, salary, yearid)
 AS
-  SELECT 1, 1, 1, 1, 1 -- replace this line
+  SELECT s.playerid, m.namefirst, m.namelast, s.salary, s.yearid
+  FROM salaries s, master m
+  WHERE (yearid = 2000 and s.salary = 
+      (SELECT MAX(salary) FROM salaries WHERE yearid = 2000 GROUP BY yearid))
+    or (yearid = 2001 and s.salary = 
+      (SELECT MAX(salary) FROM salaries WHERE yearid = 2001 GROUP BY yearid))
+    and s.playerid = m.playerid
+
 ;
 -- Question 4v
 CREATE VIEW q4v(team, diffAvg) AS
