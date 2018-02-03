@@ -157,7 +157,7 @@ AS
 -- Question 4iv
 CREATE VIEW q4iv(playerid, namefirst, namelast, salary, yearid)
 AS
-  SELECT s.playerid, m.namefirst, m.namelast, s.salary, s.yearid
+  SELECT DISTINCT s.playerid, m.namefirst, m.namelast, s.salary, s.yearid
   FROM salaries s, master m
   WHERE (yearid = 2000 and s.salary = 
       (SELECT MAX(salary) FROM salaries WHERE yearid = 2000 GROUP BY yearid))
@@ -168,6 +168,10 @@ AS
 ;
 -- Question 4v
 CREATE VIEW q4v(team, diffAvg) AS
-  SELECT 1, 1 -- replace this line
+  SELECT a.teamid as team, MAX(s.salary) - MIN(s.salary) as diffAvg
+  FROM allstarfull a, salaries s
+  WHERE a.yearid = s.yearid and s.yearid = 2016 and a.playerid = s.playerid
+  GROUP BY team
+  ORDER BY team
 ;
 
