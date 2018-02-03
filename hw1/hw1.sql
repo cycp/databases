@@ -73,8 +73,11 @@ AS
 -- Question 3i
 CREATE VIEW q3i(playerid, namefirst, namelast, yearid, slg)
 AS
-  SELECT b.playerid, m.namefirst, m.namelast, b.yearid, ((h-h2b-h3b-hr)+2*h2b+3*h3b+4*hr)*1.0/ab as slg
-  FROM batting b, master m
+  SELECT b.playerid, m.namefirst, m.namelast, b.yearid, 
+    (s.one + 2*s.two + 3*s.three + 4*s.hr) * 1.0 / s.ab as slg
+  FROM batting b, master m, 
+    (SELECT h-h2b-h3b-hr as one, 2*h2b as two, 3*h3b as three, 
+    4*hr as hr, ab FROM batting) s
   WHERE b.ab > 50 and m.playerid = b.playerid
   ORDER BY slg DESC, yearid, playerid
   LIMIT 10
@@ -83,7 +86,15 @@ AS
 -- Question 3ii
 CREATE VIEW q3ii(playerid, namefirst, namelast, lslg)
 AS
-  SELECT 1, 1, 1, 1 -- replace this line
+  SELECT playerid, namefirst, namelast, 
+    (sums.h - sums.h2b - sums.h3b - sums.hr + 2*sums.h2b + 3*sums.h3b + 
+      4*sums.hr)*1.0/sums.ab as lslg
+  FROM batting, 
+    (SELECT SUM(h) h, SUM(h2b) h2b, SUM(h3b) h3b, SUM(hr) hr, SUM(ab) ab FROM batting
+      GROUP BY playerid) as sums
+  WHERE sums.ab > 50 and b.playerid = sums.playerid
+  GROUP BY playerid
+  ORDER BY lslg DESC, playerid
 ;
 
 -- Question 3iii
