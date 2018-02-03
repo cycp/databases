@@ -95,12 +95,15 @@ AS
   WHERE sums.ab > 50 and b.playerid = sums.playerid
   GROUP BY playerid
   ORDER BY lslg DESC, playerid
+  LIMIT 10
 ;
 
 -- Question 3iii
 CREATE VIEW q3iii(namefirst, namelast, lslg)
 AS
   SELECT 1, 1, 1 -- replace this line
+  FROM (SELECT  FROM batting WHERE playerid=mayswi01) as mays
+  WHERE lslg > 
 ;
 
 -- Question 4i
