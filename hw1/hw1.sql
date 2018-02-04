@@ -81,7 +81,7 @@ AS
 CREATE VIEW q3i(playerid, namefirst, namelast, yearid, slg)
 AS
   SELECT b.playerid, m.namefirst, m.namelast, b.yearid,
-    ((h-h2b-h3b-hr) + 2*h2b + 3*h3b + 4*hr)*1.0/ab as slg
+    CAST(((h-h2b-h3b-hr) + 2*h2b + 3*h3b + 4*hr)*1.0/ab as float) as slg
   FROM batting b, master m
   WHERE m.playerid = b.playerid and b.ab > 50
   ORDER BY slg DESC, b.yearid, m.playerid
@@ -92,8 +92,8 @@ AS
 CREATE VIEW q3ii(playerid, namefirst, namelast, lslg)
 AS
   SELECT b.playerid, m.namefirst, m.namelast, 
-    ((SUM(h)-SUM(h2b)-SUM(h3b)-SUM(hr)) + 2*SUM(h2b) + 
-    3*SUM(h3b) + 4*SUM(hr))*1.0/SUM(ab) as lslg
+    CAST(((SUM(h)-SUM(h2b)-SUM(h3b)-SUM(hr)) + 2*SUM(h2b) +
+    3*SUM(h3b) + 4*SUM(hr))*1.0/SUM(ab) as float) as lslg
   FROM batting b, master m
   WHERE m.playerid = b.playerid
   GROUP BY m.playerid, b.playerid, m.namefirst, m.namelast
@@ -106,8 +106,8 @@ AS
 CREATE VIEW q3iii(namefirst, namelast, lslg)
 AS 
   SELECT m.namefirst, m.namelast, 
-    (SUM(h)-SUM(h2b)-SUM(h3b)-SUM(hr) + 2*SUM(h2b) + 
-    3*SUM(h3b) + 4*SUM(hr))*1.0/SUM(ab) as lslg 
+    CAST((SUM(h)-SUM(h2b)-SUM(h3b)-SUM(hr) + 2*SUM(h2b) +
+    3*SUM(h3b) + 4*SUM(hr))*1.0/SUM(ab) as float) as lslg
   FROM batting b, master m
   WHERE m.playerid = b.playerid 
   GROUP BY m.playerid
@@ -131,14 +131,28 @@ AS
 -- Question 4ii
 CREATE VIEW q4ii(binid, low, high, count)
 AS
-  SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, 
-    MIN(salary), MAX(salary), COUNT(*)
-  FROM salaries,
-    (SELECT MIN(salary), MAX(salary)
-      FROM salaries WHERE yearid=2016) bounds
-  WHERE yearid=2016
-  GROUP BY binid
-  ORDER BY binid
+--  SELECT bins.binid,
+--    MIN(salary) + (bins.max - bins.min)/10*bins.binid, MIN(salary) + (bins.max - bins.min)/10*(1+bins.binid), COUNT(*)
+--  FROM salaries,
+--    (SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, bounds.max, bounds.min
+--      FROM salaries,
+--       (SELECT MIN(salary), MAX(salary), (MAX(salary) - MIN(salary)) / 10 as range
+--             FROM salaries WHERE yearid=2016) bounds
+--      WHERE yearid=2016) bins
+--  WHERE yearid=2016
+--  GROUP BY binid
+--  ORDER BY binid
+
+    WITH
+     (SELECT MIN(salary), MAX(salary), (MAX(salary) - MIN(salary)) / 10 as range
+             FROM salaries WHERE yearid=2016) bounds(min, max, range)
+
+    SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid,
+      MIN(salary) + r.range * binid, MAX(salary), COUNT(*)
+    FROM salaries, bounds
+    WHERE yearid=2016
+    GROUP BY binid
+    ORDER BY binid
 ;
 
 -- Question 4iii
