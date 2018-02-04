@@ -104,9 +104,7 @@ AS
 
 -- Question 3iii
 CREATE VIEW q3iii(namefirst, namelast, lslg)
-AS
-
-  WITH 
+AS 
   SELECT m.namefirst, m.namelast, 
     (SUM(h)-SUM(h2b)-SUM(h3b)-SUM(hr) + 2*SUM(h2b) + 
     3*SUM(h3b) + 4*SUM(hr))*1.0/SUM(ab) as lslg 
