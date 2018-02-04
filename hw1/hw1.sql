@@ -131,28 +131,43 @@ AS
 -- Question 4ii
 CREATE VIEW q4ii(binid, low, high, count)
 AS
+  WITH bins AS
+    (SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, bounds.range as range
+          FROM salaries,
+           (SELECT MIN(salary), MAX(salary), (MAX(salary) - MIN(salary)) / 10 as range
+                 FROM salaries WHERE yearid=2016) bounds
+          WHERE yearid=2016)
+
+  SELECT bins.binid,
+    MIN(salary) + bins.range*bins.binid, MIN(salary) + bins.range*(1+bins.binid), COUNT(*)
+  FROM salaries,  bins
+  WHERE yearid=2016
+  GROUP BY binid
+  ORDER BY binid
+
 --  SELECT bins.binid,
---    MIN(salary) + (bins.max - bins.min)/10*bins.binid, MIN(salary) + (bins.max - bins.min)/10*(1+bins.binid), COUNT(*)
+--    MIN(salary) + bins.range*bins.binid, MIN(salary) + bins.range*(1+bins.binid), COUNT(*)
 --  FROM salaries,
---    (SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, bounds.max, bounds.min
+--    (SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, bounds.range as range
 --      FROM salaries,
 --       (SELECT MIN(salary), MAX(salary), (MAX(salary) - MIN(salary)) / 10 as range
 --             FROM salaries WHERE yearid=2016) bounds
 --      WHERE yearid=2016) bins
 --  WHERE yearid=2016
---  GROUP BY binid
+--  GROUP BY binid, bins.range
 --  ORDER BY binid
 
-    WITH
-     (SELECT MIN(salary), MAX(salary), (MAX(salary) - MIN(salary)) / 10 as range
-             FROM salaries WHERE yearid=2016) bounds(min, max, range)
 
-    SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid,
-      MIN(salary) + r.range * binid, MAX(salary), COUNT(*)
-    FROM salaries, bounds
-    WHERE yearid=2016
-    GROUP BY binid
-    ORDER BY binid
+
+--
+--    SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid,
+--      MIN(salary) + r.range * binid, MAX(salary), COUNT(*)
+--    FROM salaries,
+--      (SELECT MIN(salary), MAX(salary), (MAX(salary) - MIN(salary)) / 10 as range
+--        FROM salaries WHERE yearid=2016) bounds
+--    WHERE yearid=2016
+--    GROUP BY binid
+--    ORDER BY binid
 ;
 
 -- Question 4iii
