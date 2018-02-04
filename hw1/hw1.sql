@@ -184,14 +184,18 @@ AS
 -- Question 4iv
 CREATE VIEW q4iv(playerid, namefirst, namelast, salary, yearid)
 AS
-  SELECT DISTINCT s.playerid, m.namefirst, m.namelast, s.salary, s.yearid
+  SELECT s.playerid, m.namefirst, m.namelast, s.salary, s.yearid
   FROM salaries s, master m
-  WHERE (yearid = 2000 and s.salary = 
-      (SELECT MAX(salary) FROM salaries WHERE yearid = 2000 GROUP BY yearid))
-    or (yearid = 2001 and s.salary = 
-      (SELECT MAX(salary) FROM salaries WHERE yearid = 2001 GROUP BY yearid))
-    and s.playerid = m.playerid
-
+  WHERE s.playerid = m.playerid and ((s.yearid = 2000 and s.salary =
+    (SELECT MAX(salary) 
+      FROM salaries 
+      WHERE yearid = 2000
+      GROUP BY yearid))
+  or (s.yearid = 2001 and s.salary =
+    (SELECT MAX(salary) 
+      FROM salaries 
+      WHERE yearid = 2001
+      GROUP BY yearid)))
 ;
 -- Question 4v
 CREATE VIEW q4v(team, diffAvg) AS
