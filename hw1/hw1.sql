@@ -110,7 +110,7 @@ AS
     3*SUM(h3b) + 4*SUM(hr))*1.0/SUM(ab) as float) as lslg
   FROM batting b, master m
   WHERE m.playerid = b.playerid 
-  GROUP BY m.playerid
+  GROUP BY m.playerid, m.namefirst, m.namelast
   HAVING SUM(b.ab) > 50 and (SUM(h)-SUM(h2b)-SUM(h3b)-SUM(hr) + 2*SUM(h2b) + 
     3*SUM(h3b) + 4*SUM(hr))*1.0/SUM(ab) > ANY 
       (SELECT ((SUM(h)-SUM(h2b)-SUM(h3b)-SUM(hr)) + 2*SUM(h2b) + 
@@ -131,39 +131,6 @@ AS
 -- Question 4ii
 CREATE VIEW q4ii(binid, low, high, count)
 AS
-
-
-
-WITH bounds AS
-  (SELECT (MAX(salary) - MIN(salary))/10 as range, MIN(salary), MAX(salary)
-    FROM salaries
-    WHERE yearid = 2016)
-
-WITH bins AS
-  (SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid
-    FROM salaries, bounds
-    WHERE yearid = 2016
-    GROUP BY salary)
-
-
-SELECT binid, MIN(salary) + (MAX(salary)-MIN(salary))*binid, 
-  MIN(salary) + (MAX(salary)-MIN(salary))*(1+binid), COUNT(*)
-FROM bins
-WHERE yearid=2016
-GROUP BY binid
-ORDER BY binid
-
- 
-
-
-
-
-
-
-
-
-
-
 
 -- SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, 
 --   MIN(salary), MAX(salary), COUNT(*)
@@ -205,9 +172,23 @@ ORDER BY binid
  -- GROUP BY binid, bins.range
  -- ORDER BY binid
 
+WITH bounds AS
+    (SELECT MIN(salary), MAX(salary)
+    FROM salaries
+    WHERE yearid=2016),
 
+bins AS
+(SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, bounds.min, bounds.max, COUNT(*)
+FROM salaries, bounds
+WHERE yearid=2016
+GROUP BY binid, bounds.min, bounds.max
+ORDER BY binid)
 
-
+SELECT bins.binid, bins.min + (bins.max-bins.min)/10*bins.binid,
+    bins.min + (bins.max-bins.min)/10*(1+bins.binid), bins.count
+FROM bins, salaries
+GROUP BY bins.binid, bins.max, bins.min, bins.count
+ORDER BY bins.binid
 ;
 
 -- Question 4iii
