@@ -131,43 +131,83 @@ AS
 -- Question 4ii
 CREATE VIEW q4ii(binid, low, high, count)
 AS
-  WITH bins AS
-    (SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, bounds.range as range
-          FROM salaries,
-           (SELECT MIN(salary), MAX(salary), (MAX(salary) - MIN(salary)) / 10 as range
-                 FROM salaries WHERE yearid=2016) bounds
-          WHERE yearid=2016)
-
-  SELECT bins.binid,
-    MIN(salary) + bins.range*bins.binid, MIN(salary) + bins.range*(1+bins.binid), COUNT(*)
-  FROM salaries,  bins
-  WHERE yearid=2016
-  GROUP BY binid
-  ORDER BY binid
-
---  SELECT bins.binid,
---    MIN(salary) + bins.range*bins.binid, MIN(salary) + bins.range*(1+bins.binid), COUNT(*)
---  FROM salaries,
---    (SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, bounds.range as range
---      FROM salaries,
---       (SELECT MIN(salary), MAX(salary), (MAX(salary) - MIN(salary)) / 10 as range
---             FROM salaries WHERE yearid=2016) bounds
---      WHERE yearid=2016) bins
---  WHERE yearid=2016
---  GROUP BY binid, bins.range
---  ORDER BY binid
 
 
 
---
---    SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid,
---      MIN(salary) + r.range * binid, MAX(salary), COUNT(*)
---    FROM salaries,
---      (SELECT MIN(salary), MAX(salary), (MAX(salary) - MIN(salary)) / 10 as range
---        FROM salaries WHERE yearid=2016) bounds
---    WHERE yearid=2016
---    GROUP BY binid
---    ORDER BY binid
+WITH bounds AS
+  (SELECT (MAX(salary) - MIN(salary))/10 as range, MIN(salary), MAX(salary)
+    FROM salaries
+    WHERE yearid = 2016)
+
+WITH bins AS
+  (SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid
+    FROM salaries, bounds
+    WHERE yearid = 2016
+    GROUP BY salary)
+
+
+SELECT binid, MIN(salary) + (MAX(salary)-MIN(salary))*binid, 
+  MIN(salary) + (MAX(salary)-MIN(salary))*(1+binid), COUNT(*)
+FROM bins
+WHERE yearid=2016
+GROUP BY binid
+ORDER BY binid
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+-- SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, 
+--   MIN(salary), MAX(salary), COUNT(*)
+-- FROM salaries,
+--   (SELECT MIN(salary), MAX(salary)
+--     FROM salaries WHERE yearid=2016) bounds
+--   WHERE yearid=2016
+--   GROUP BY binid
+--   ORDER BY binid
+
+
+ 
+ -- SELECT bins.binid,
+ --   MIN(salary) + bins.range*bins.binid as low, MIN(salary) + bins.range*(1+bins.binid) as high, 
+ --    COUNT(*)
+ -- FROM salaries,
+ --   (SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, bounds.range as range
+ --     FROM salaries,
+ --      (SELECT MIN(salary), MAX(salary), (MAX(salary) - MIN(salary)) / 10 as range
+ --            FROM salaries WHERE yearid=2016) bounds
+ --     WHERE yearid=2016) bins
+ -- WHERE yearid=2016
+ -- GROUP BY binid, bins.range
+ -- ORDER BY binid
+
+
+
+
+ -- SELECT bins.binid,
+ --   MIN(salary) + bins.range*bins.binid as low, MIN(salary) + bins.range*(1+bins.binid) as high, 
+ --    COUNT(*)
+ -- FROM salaries,
+ --   (SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, bounds.range as range
+ --     FROM salaries,
+ --      (SELECT MIN(salary), MAX(salary), (MAX(salary) - MIN(salary)) / 10 as range
+ --            FROM salaries WHERE yearid=2016) bounds
+ --     WHERE yearid=2016) bins
+ -- WHERE yearid=2016
+ -- GROUP BY binid, bins.range
+ -- ORDER BY binid
+
+
+
+
 ;
 
 -- Question 4iii
