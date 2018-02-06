@@ -173,16 +173,16 @@ AS
  -- ORDER BY binid
 
 WITH bounds AS
-    (SELECT MIN(salary), MAX(salary)
-    FROM salaries
-    WHERE yearid=2016),
+  (SELECT MIN(salary), MAX(salary)
+  FROM salaries
+  WHERE yearid=2016),
 
 bins AS
-(SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, bounds.min, bounds.max, COUNT(*)
-FROM salaries, bounds
-WHERE yearid=2016
-GROUP BY binid, bounds.min, bounds.max
-ORDER BY binid)
+  (SELECT width_bucket(salary, bounds.min, bounds.max+1, 10) - 1 as binid, bounds.min, bounds.max, COUNT(*)
+  FROM salaries, bounds
+  WHERE yearid=2016
+  GROUP BY binid, bounds.min, bounds.max
+  ORDER BY binid)
 
 SELECT bins.binid, bins.min + (bins.max-bins.min)/10*bins.binid,
     bins.min + (bins.max-bins.min)/10*(1+bins.binid), bins.count
