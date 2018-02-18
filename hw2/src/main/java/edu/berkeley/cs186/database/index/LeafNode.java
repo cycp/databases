@@ -13,6 +13,8 @@ import edu.berkeley.cs186.database.databox.Type;
 import edu.berkeley.cs186.database.io.Page;
 import edu.berkeley.cs186.database.table.RecordId;
 
+import javax.xml.crypto.Data;
+
 /**
  * A leaf of a B+ tree. Every leaf in a B+ tree of order d stores between d and
  * 2d (key, record id) pairs and a pointer to its right sibling (i.e. the page
@@ -335,7 +337,22 @@ class LeafNode extends BPlusNode {
    * meta.getAllocator().
    */
   public static LeafNode fromBytes(BPlusTreeMetadata metadata, int pageNum) {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    Page page = metadata.getAllocator().fetchPage(pageNum);
+    ByteBuffer buf = page.getByteBuffer();
+
+    assert(buf.get() == (byte) 1);
+
+    List<DataBox> keys = new ArrayList<>();
+    List<RecordId> rids = new ArrayList<>();
+
+    int right = buf.getInt();
+
+    int n = buf.getInt(); //num of (key, rid) pairs
+    for (int i = 0; i < n; ++i) {
+      keys.add(DataBox.fromBytes(buf, metadata.getKeySchema()));
+      rids.add(RecordId.fromBytes(buf));
+    }
+    return new LeafNode(metadata, pageNum, keys, rids, right == -1 ? Optional.empty() : Optional.of(right));
   }
 
   // Builtins //////////////////////////////////////////////////////////////////
