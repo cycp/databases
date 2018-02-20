@@ -134,20 +134,45 @@ class LeafNode extends BPlusNode {
   // See BPlusNode.get.
   @Override
   public LeafNode get(DataBox key) {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    return this;
   }
 
   // See BPlusNode.getLeftmostLeaf.
   @Override
   public LeafNode getLeftmostLeaf() {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    return this;
   }
 
   // See BPlusNode.put.
   @Override
   public Optional<Pair<DataBox, Integer>> put(DataBox key, RecordId rid)
       throws BPlusTreeException {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    if (keys.contains(key)) {
+      throw new BPlusTreeException();
+    }
+    int index = InnerNode.numLessThanEqual(key, keys);
+    keys.add(index, key);
+    rids.add(index, rid);
+    int d = metadata.getOrder();
+    if (keys.size() <= 2*d) {
+      sync();
+      return Optional.empty();
+    } else {
+      List<DataBox> lkeys = keys.subList(0, d);
+      List<RecordId> lrids = rids.subList(0, d);
+      List<DataBox> rkeys = keys.subList(d, 2*d+1);
+      List<RecordId> rrids = rids.subList(d, 2*d+1);
+
+      // create new right node after splitting
+      LeafNode right = new LeafNode(metadata, rkeys, rrids, rightSibling);
+      // update this node's info
+      int pageNum = right.getPage().getPageNum();
+      this.rightSibling = Optional.of(pageNum);
+      this.keys = lkeys;
+      this.rids = lrids;
+      sync();
+      return Optional.of(new Pair(rkeys.get(0), pageNum));
+    }
   }
 
   // See BPlusNode.bulkLoad.

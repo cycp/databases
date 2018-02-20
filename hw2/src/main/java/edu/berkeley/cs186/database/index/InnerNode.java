@@ -70,19 +70,27 @@ class InnerNode extends BPlusNode {
   // See BPlusNode.get.
   @Override
   public LeafNode get(DataBox key) {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    for (int i = 0; i < keys.size(); i++) {
+      int comparator = key.compareTo(keys.get(i));
+      if (comparator == -1) {
+        return this.getChild(i).get(key);
+      } else {
+        return this.getChild(i+1).get(key);
+      }
+    }
   }
 
   // See BPlusNode.getLeftmostLeaf.
   @Override
   public LeafNode getLeftmostLeaf() {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    return this.getChild(0).getLeftmostLeaf();
   }
 
   // See BPlusNode.put.
   @Override
   public Optional<Pair<DataBox, Integer>> put(DataBox key, RecordId rid)
       throws BPlusTreeException {
+
     throw new UnsupportedOperationException("TODO(hw2): implement.");
   }
 
