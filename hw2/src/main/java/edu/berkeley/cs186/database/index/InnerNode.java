@@ -13,6 +13,8 @@ import edu.berkeley.cs186.database.databox.Type;
 import edu.berkeley.cs186.database.io.Page;
 import edu.berkeley.cs186.database.table.RecordId;
 
+import javax.xml.crypto.Data;
+
 /**
  * A inner node of a B+ tree. Every inner node in a B+ tree of order d stores
  * between d and 2d keys. An inner node with n keys stores n + 1 "pointers" to
@@ -70,28 +72,48 @@ class InnerNode extends BPlusNode {
   // See BPlusNode.get.
   @Override
   public LeafNode get(DataBox key) {
-    for (int i = 0; i < keys.size(); i++) {
-      int comparator = key.compareTo(keys.get(i));
-      if (comparator == -1) {
-        return this.getChild(i).get(key);
-      } else {
-        return this.getChild(i+1).get(key);
-      }
-    }
+    int index = numLessThanEqual(key, keys);
+    return getChild(index).get(key);
   }
 
   // See BPlusNode.getLeftmostLeaf.
   @Override
   public LeafNode getLeftmostLeaf() {
-    return this.getChild(0).getLeftmostLeaf();
+    return getChild(0).getLeftmostLeaf();
   }
 
   // See BPlusNode.put.
   @Override
   public Optional<Pair<DataBox, Integer>> put(DataBox key, RecordId rid)
       throws BPlusTreeException {
+    int index = numLessThanEqual(key, keys);
+    BPlusNode b = getChild(index);
+    Optional<Pair<DataBox, Integer>> o = b.put(key, rid);
+    if (!o.isPresent()) { // child didn't overflow
+      return Optional.empty();
+    } else {
+      Pair<DataBox, Integer> pair = o.get();
+      keys.add(index, pair.getFirst()); // copy up key
+      children.add(index + 1, pair.getSecond());
+    }
 
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    int d = metadata.getOrder();
+    if (keys.size() <= 2*d) {
+      sync();
+      return Optional.empty();
+    } else {
+      List<DataBox> lkeys = keys.subList(0, d);
+      List<Integer> lchildren = children.subList(0, d+1);
+      DataBox mid = keys.get(d);
+      List<DataBox> rkeys = keys.subList(d+1, 2*d+1);
+      List<Integer> rchildren = children.subList(d+1, 2*d+1);
+
+      InnerNode n = new InnerNode(metadata, rkeys, rchildren);
+      this.keys = lkeys;
+      this.children = lchildren;
+      sync();
+      return Optional.of(new Pair(mid, n.getPage().getPageNum()));
+    }
   }
 
   // See BPlusNode.bulkLoad.
@@ -105,7 +127,8 @@ class InnerNode extends BPlusNode {
   // See BPlusNode.remove.
   @Override
   public void remove(DataBox key) {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    LeafNode leaf = get(key);
+    leaf.remove(key);
   }
 
   // Helpers ///////////////////////////////////////////////////////////////////
