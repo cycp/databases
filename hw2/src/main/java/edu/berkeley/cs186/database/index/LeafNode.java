@@ -180,6 +180,7 @@ class LeafNode extends BPlusNode {
   public Optional<Pair<DataBox, Integer>> bulkLoad(Iterator<Pair<DataBox, RecordId>> data,
                                                    float fillFactor)
       throws BPlusTreeException {
+
     throw new UnsupportedOperationException("TODO(hw2): implement.");
   }
 

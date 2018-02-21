@@ -204,8 +204,8 @@ public class BPlusTree {
      * memory will receive 0 points.
      */
     public Iterator<RecordId> scanAll() {
-      // TODO(hw2): Return a BPlusTreeIterator.
-        return new BPlusTreeIterator();
+        LeafNode left = root.getLeftmostLeaf();
+        return new BPlusTreeIterator(left.scanAll(), left);
     }
 
     /**
@@ -234,8 +234,8 @@ public class BPlusTree {
      */
     public Iterator<RecordId> scanGreaterEqual(DataBox key) {
       typecheck(key);
-      throw new UnsupportedOperationException("TODO(hw2): implement.");
-      // TODO(hw2): Return a BPlusTreeIterator.
+        LeafNode start = root.get(key);
+        return new BPlusTreeIterator(start.scanGreaterEqual(key), start);
     }
 
     /**
@@ -250,7 +250,16 @@ public class BPlusTree {
      */
     public void put(DataBox key, RecordId rid) throws BPlusTreeException {
       typecheck(key);
-      throw new UnsupportedOperationException("TODO(hw2): implement.");
+        Optional<Pair<DataBox, Integer>> o = root.put(key, rid);
+        if (o.isPresent()) {
+            List<DataBox> keys = new ArrayList<DataBox>();
+            List<Integer> children = new ArrayList<Integer>();
+            keys.add(o.get().getFirst());
+            children.add(o.get().getSecond());
+            children.add(root.getPage().getPageNum());
+            this.root = new InnerNode(metadata, keys, children);
+            writeHeader(headerPage.getByteBuffer());
+        }
     }
 
     /**
@@ -269,7 +278,14 @@ public class BPlusTree {
      * bulkLoad (see comments in BPlusNode.bulkLoad).
      */
     public void bulkLoad(Iterator<Pair<DataBox, RecordId>> data, float fillFactor) throws BPlusTreeException {
-      throw new UnsupportedOperationException("TODO(hw2): implement.");
+        if (root != null) {
+            throw new BPlusTreeException();
+        }
+        Optional<Pair<DataBox, Integer>> o = root.bulkLoad(data, fillFactor);
+        if (o.isPresent()) {
+            Pair pair = o.get();
+        }
+//      throw new UnsupportedOperationException("TODO(hw2): implement.");
     }
 
     /**
@@ -386,15 +402,28 @@ public class BPlusTree {
     // Iterator ////////////////////////////////////////////////////////////////
     private class BPlusTreeIterator implements Iterator<RecordId> {
       // TODO(hw2): Add whatever fields and constructors you want here.
+      Iterator<RecordId> iter;
+        LeafNode curr;
+
+        public BPlusTreeIterator(Iterator<RecordId> iter, LeafNode curr) {
+            this.iter = iter;
+            this.curr = curr;
+        }
 
       @Override
       public boolean hasNext() {
-        throw new UnsupportedOperationException("TODO(hw2): implement.");
+          return (iter.hasNext() || curr.getRightSibling().isPresent());
       }
 
       @Override
       public RecordId next() {
-        throw new UnsupportedOperationException("TODO(hw2): implement.");
+        if (iter.hasNext()) {
+            return iter.next();
+        } else {
+            curr = curr.getRightSibling().get();
+            iter = curr.scanAll();
+            return iter.next();
+        }
       }
     }
 }

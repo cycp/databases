@@ -121,8 +121,25 @@ class InnerNode extends BPlusNode {
   public Optional<Pair<DataBox, Integer>> bulkLoad(Iterator<Pair<DataBox, RecordId>> data,
                                                    float fillFactor)
       throws BPlusTreeException {
+    while (data.hasNext()) {
+      Pair<DataBox, RecordId> pair = data.next();
+      int d = metadata.getOrder();
+      if (keys.size() > 2*d) { // split
+        List<DataBox> lkeys = keys.subList(0, d);
+        List<Integer> lchildren = children.subList(0, d+1);
+        DataBox mid = keys.get(d);
+        List<DataBox> rkeys = keys.subList(d+1, 2*d+1);
+        List<Integer> rchildren = children.subList(d+1, 2*d+1);
 
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+        InnerNode n = new InnerNode(metadata, rkeys, rchildren);
+        this.keys = lkeys;
+        this.children = lchildren;
+        sync();
+      }
+      getChild(children.size() - 1).bulkLoad(data, fillFactor);
+
+    }
+//    throw new UnsupportedOperationException("TODO(hw2): implement.");
   }
 
   // See BPlusNode.remove.
