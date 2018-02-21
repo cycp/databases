@@ -180,40 +180,7 @@ class LeafNode extends BPlusNode {
   public Optional<Pair<DataBox, Integer>> bulkLoad(Iterator<Pair<DataBox, RecordId>> data,
                                                    float fillFactor)
       throws BPlusTreeException {
-    while (data.hasNext()) {
-      Pair<DataBox, RecordId> pair = data.next();
-      DataBox key = pair.getFirst();
-      RecordId rid = pair.getSecond();
-
-      // if duplicate
-      if (keys.contains(key)) {
-        throw new BPlusTreeException();
-      }
-
-      int index = InnerNode.numLessThanEqual(key, keys);
-      keys.add(index, key);
-      rids.add(index, rid);
-      int d = metadata.getOrder();
-      if (keys.size() <= fillFactor * 2 * d) {
-        sync();
-        return Optional.empty();
-
-        List<DataBox> lkeys = keys.subList(0, (int) Math.ceil(fillFactor * 2 * d));
-        List<RecordId> lrids = rids.subList(0, (int) Math.ceil(fillFactor * 2 * d));
-        List<DataBox> rkeys = keys.subList((int) Math.ceil(fillFactor * 2 * d), (int) Math.ceil(fillFactor * 2 * d + 1));
-        List<RecordId> rrids = rids.subList((int) Math.ceil(fillFactor * 2 * d), (int) Math.ceil(fillFactor * 2 * d + 1));
-
-        // create new right node after splitting
-        LeafNode right = new LeafNode(metadata, rkeys, rrids, rightSibling);
-        // update this node's info
-        int pageNum = right.getPage().getPageNum();
-        this.rightSibling = Optional.of(pageNum);
-        this.keys = lkeys;
-        this.rids = lrids;
-        sync();
-        return Optional.of(new Pair(rkeys.get(0), pageNum));
-      }
-    }
+    throw new UnsupportedOperationException("TODO(hw2): implement.");
   }
 
   // See BPlusNode.remove.

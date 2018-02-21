@@ -156,7 +156,7 @@ public class BPlusTree {
      */
     public Optional<RecordId> get(DataBox key) {
       typecheck(key);
-        return root.get(key).getKey();
+        return root.get(key).getKey(key);
     }
 
     /**
@@ -205,7 +205,7 @@ public class BPlusTree {
      */
     public Iterator<RecordId> scanAll() {
       // TODO(hw2): Return a BPlusTreeIterator.
-        return new BPlusTreeIterator()
+        return new BPlusTreeIterator();
     }
 
     /**
