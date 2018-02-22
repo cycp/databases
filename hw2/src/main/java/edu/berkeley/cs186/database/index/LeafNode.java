@@ -159,18 +159,20 @@ class LeafNode extends BPlusNode {
       sync();
       return Optional.empty();
     } else {
-      List<DataBox> lkeys = keys.subList(0, d);
-      List<RecordId> lrids = rids.subList(0, d);
-      List<DataBox> rkeys = keys.subList(d, 2*d+1);
-      List<RecordId> rrids = rids.subList(d, 2*d+1);
+      List<DataBox> rkeys = new ArrayList<>();
+      List<RecordId> rrids = new ArrayList<>();
+//      List<DataBox> lkeys = keys.subList(0, d);
+//      List<RecordId> lrids = rids.subList(0, d);
+      rkeys = keys.subList(d, keys.size());
+      rrids = rids.subList(d, rids.size());
+      keys = keys.subList(0,d);
+      rids = rids.subList(0,d);
 
-      // create new right node after splitting
       LeafNode right = new LeafNode(metadata, rkeys, rrids, rightSibling);
-      // update this node's info
       int pageNum = right.getPage().getPageNum();
       this.rightSibling = Optional.of(pageNum);
-      this.keys = lkeys;
-      this.rids = lrids;
+//      this.keys = lkeys;
+//      this.rids = lrids;
       sync();
       return Optional.of(new Pair(rkeys.get(0), pageNum));
     }
