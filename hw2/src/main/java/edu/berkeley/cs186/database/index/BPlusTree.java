@@ -256,8 +256,9 @@ public class BPlusTree {
             List<DataBox> keys = new ArrayList<>();
             List<Integer> children = new ArrayList<>();
             keys.add(o.get().getFirst());
-            children.add(o.get().getSecond());
+//            children.add(o.get().getSecond());
             children.add(root.getPage().getPageNum());
+            children.add(o.get().getSecond());
             this.root = new InnerNode(metadata, keys, children);
 //            writeHeader(headerPage.getByteBuffer());
         }

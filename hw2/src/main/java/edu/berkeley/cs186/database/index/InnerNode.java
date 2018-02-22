@@ -86,32 +86,32 @@ class InnerNode extends BPlusNode {
 
     BPlusNode b = getChild(index);
     Optional<Pair<DataBox, Integer>> o = b.put(key, rid);
-    if (!o.isPresent()) { // child didn't overflow
-      sync();
-      return Optional.empty();
-    } else {
-      Pair<DataBox, Integer> pair = o.get();
-      keys.add(index, pair.getFirst()); // copy up key
-      children.add(index + 1, pair.getSecond());
-    }
 
     int d = metadata.getOrder();
-    if (keys.size() <= 2*d) {
-      sync();
-      return Optional.empty();
-    } else {
-      List<DataBox> lkeys = keys.subList(0, d);
-      List<Integer> lchildren = children.subList(0, d+1);
-      DataBox mid = keys.get(d);
-      List<DataBox> rkeys = keys.subList(d+1, 2*d+1);
-      List<Integer> rchildren = children.subList(d+1, 2*d+1);
+    if (o.isPresent()) {
+      Pair<DataBox, Integer> pair = o.get();
+      DataBox k = pair.getFirst();
+      int pageNum = pair.getSecond();
+      keys.add(k);
+      Collections.sort(keys);
+      int ind = keys.indexOf(k);
+      children.add(ind+1, pageNum);
+//      children.add(pageNum);
+    }
+    if (keys.size() > (2 * d)) { // split
+      DataBox splitkey = keys.get(d);
+      List<DataBox> rkeys = keys.subList(d + 1, keys.size());
+      keys = keys.subList(0, d);
+
+      List<Integer> rchildren = children.subList(children.size() / 2, children.size());
+      children = children.subList(0, children.size() / 2);
 
       InnerNode n = new InnerNode(metadata, rkeys, rchildren);
-      this.keys = lkeys;
-      this.children = lchildren;
       sync();
-      return Optional.of(new Pair(mid, n.getPage().getPageNum()));
+      return Optional.of(new Pair(splitkey, n.getPage().getPageNum()));
     }
+    sync();
+    return Optional.empty();
   }
 
   // See BPlusNode.bulkLoad.
@@ -156,8 +156,8 @@ class InnerNode extends BPlusNode {
   // See BPlusNode.remove.
   @Override
   public void remove(DataBox key) {
-    LeafNode leaf = get(key);
-    leaf.remove(key);
+    BPlusNode n = getChild((numLessThanEqual(key, keys)));
+    n.remove(key);
   }
 
   // Helpers ///////////////////////////////////////////////////////////////////
