@@ -252,13 +252,14 @@ public class BPlusTree {
       typecheck(key);
         Optional<Pair<DataBox, Integer>> o = root.put(key, rid);
         if (o.isPresent()) {
-            List<DataBox> keys = new ArrayList<DataBox>();
-            List<Integer> children = new ArrayList<Integer>();
+
+            List<DataBox> keys = new ArrayList<>();
+            List<Integer> children = new ArrayList<>();
             keys.add(o.get().getFirst());
             children.add(o.get().getSecond());
             children.add(root.getPage().getPageNum());
             this.root = new InnerNode(metadata, keys, children);
-            writeHeader(headerPage.getByteBuffer());
+//            writeHeader(headerPage.getByteBuffer());
         }
     }
 
@@ -278,14 +279,27 @@ public class BPlusTree {
      * bulkLoad (see comments in BPlusNode.bulkLoad).
      */
     public void bulkLoad(Iterator<Pair<DataBox, RecordId>> data, float fillFactor) throws BPlusTreeException {
-        if (root != null) {
-            throw new BPlusTreeException();
+        if (root.getLeftmostLeaf().getKeys().size() != 0) {
+            throw new BPlusTreeException("Tree should be empty");
         }
-        Optional<Pair<DataBox, Integer>> o = root.bulkLoad(data, fillFactor);
-        if (o.isPresent()) {
-            Pair pair = o.get();
+        while (data.hasNext()) {
+            Optional<Pair<DataBox, Integer>> o = root.bulkLoad(data, fillFactor);
+            if (o.isPresent()) {
+                Pair<DataBox, Integer> pair = o.get();
+                DataBox key = pair.getFirst();
+                Integer pageNum = pair.getSecond();
+                int leftPageNum = root.getPage().getPageNum();
+
+
+                List<DataBox> keys = new ArrayList<>();
+                keys.add(key);
+                List<Integer> children = new ArrayList<>();
+                children.add(leftPageNum);
+                children.add(pageNum); // r page
+                root = new InnerNode(metadata, keys, children);
+//            writeHeader(headerPage.getByteBuffer());
+            }
         }
-//      throw new UnsupportedOperationException("TODO(hw2): implement.");
     }
 
     /**

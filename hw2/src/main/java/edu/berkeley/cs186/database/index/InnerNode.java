@@ -1,11 +1,7 @@
 package edu.berkeley.cs186.database.index;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import edu.berkeley.cs186.database.common.Pair;
 import edu.berkeley.cs186.database.databox.DataBox;
@@ -87,9 +83,11 @@ class InnerNode extends BPlusNode {
   public Optional<Pair<DataBox, Integer>> put(DataBox key, RecordId rid)
       throws BPlusTreeException {
     int index = numLessThanEqual(key, keys);
+
     BPlusNode b = getChild(index);
     Optional<Pair<DataBox, Integer>> o = b.put(key, rid);
     if (!o.isPresent()) { // child didn't overflow
+      sync();
       return Optional.empty();
     } else {
       Pair<DataBox, Integer> pair = o.get();
@@ -121,25 +119,38 @@ class InnerNode extends BPlusNode {
   public Optional<Pair<DataBox, Integer>> bulkLoad(Iterator<Pair<DataBox, RecordId>> data,
                                                    float fillFactor)
       throws BPlusTreeException {
+
+    int d = metadata.getOrder();
+    int fillnum = (int)Math.ceil(2*d*fillFactor);
     while (data.hasNext()) {
-      Pair<DataBox, RecordId> pair = data.next();
-      int d = metadata.getOrder();
-      if (keys.size() > 2*d) { // split
-        List<DataBox> lkeys = keys.subList(0, d);
-        List<Integer> lchildren = children.subList(0, d+1);
-        DataBox mid = keys.get(d);
-        List<DataBox> rkeys = keys.subList(d+1, 2*d+1);
-        List<Integer> rchildren = children.subList(d+1, 2*d+1);
+      Optional o = getChild(children.size() - 1).bulkLoad(data, fillFactor);
+
+      if (o.isPresent()) {
+        Pair<DataBox, Integer> pair = (Pair) o.get();
+        DataBox key = pair.getFirst();
+        int pageNum = pair.getSecond();
+        keys.add(key);
+        Collections.sort(keys);
+        int ind = keys.indexOf(key);
+//        children.add(ind, pageNum);
+        children.add(pageNum);
+      }
+      if (keys.size() > (2 * d)) { // split
+        DataBox splitkey = keys.get(d);
+        List<DataBox> rkeys = keys.subList(d + 1, keys.size());
+        keys = keys.subList(0, d);
+
+        List<Integer> rchildren = children.subList(children.size() / 2, children.size());
+        children = children.subList(0, children.size() / 2);
 
         InnerNode n = new InnerNode(metadata, rkeys, rchildren);
-        this.keys = lkeys;
-        this.children = lchildren;
         sync();
+        return Optional.of(new Pair(splitkey, n.getPage().getPageNum()));
       }
-      getChild(children.size() - 1).bulkLoad(data, fillFactor);
-
     }
-//    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    // no more data
+    sync();
+    return Optional.empty();
   }
 
   // See BPlusNode.remove.

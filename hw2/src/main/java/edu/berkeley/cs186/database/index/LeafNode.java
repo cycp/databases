@@ -1,11 +1,7 @@
 package edu.berkeley.cs186.database.index;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import edu.berkeley.cs186.database.common.Pair;
 import edu.berkeley.cs186.database.databox.DataBox;
@@ -147,12 +143,17 @@ class LeafNode extends BPlusNode {
   @Override
   public Optional<Pair<DataBox, Integer>> put(DataBox key, RecordId rid)
       throws BPlusTreeException {
-    if (keys.contains(key)) {
+    if (getKeys().contains(key)) {
       throw new BPlusTreeException();
     }
-    int index = InnerNode.numLessThanEqual(key, keys);
-    keys.add(index, key);
-    rids.add(index, rid);
+//    int index = InnerNode.numLessThanEqual(key, keys);
+//    keys.add(index, key);
+//    rids.add(index, rid);
+    keys.add(key);
+    Collections.sort(keys);
+    int ind = keys.indexOf(key);
+    rids.add(ind, rid);
+
     int d = metadata.getOrder();
     if (keys.size() <= 2*d) {
       sync();
@@ -179,9 +180,49 @@ class LeafNode extends BPlusNode {
   @Override
   public Optional<Pair<DataBox, Integer>> bulkLoad(Iterator<Pair<DataBox, RecordId>> data,
                                                    float fillFactor)
-      throws BPlusTreeException {
+    throws BPlusTreeException {
 
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    int d = metadata.getOrder();
+    int fillnum = (int)Math.ceil(fillFactor*2*d);
+    while (data.hasNext()) {
+      Pair<DataBox, RecordId> pair = data.next();
+
+      DataBox key = pair.getFirst();
+      RecordId rid = pair.getSecond();
+//      int index = InnerNode.numLessThanEqual(key, keys);
+      keys.add(key);
+      Collections.sort(keys);
+      int ind = keys.indexOf(key);
+      rids.add(ind, rid);
+//      rids.add(rid);
+
+
+      if (keys.size() > fillnum) { // split
+        List<DataBox> rkeys = new ArrayList<>();
+        List<RecordId> rrids = new ArrayList<>();
+        rkeys.add(keys.get(keys.size() - 1));
+        rrids.add(rids.get(rids.size() - 1));
+        keys.remove(keys.size() - 1);
+        rids.remove(rids.size() - 1);
+
+
+//      List<DataBox> lkeys = keys.subList(0, (int) Math.ceil(2 * d * fillFactor));
+//      List<RecordId> lrids = rids.subList(0, (int) Math.ceil(2 * d * fillFactor));
+//      List<DataBox> rkeys = keys.subList((int) Math.ceil(2 * d * fillFactor), (int) Math.ceil(2 * d * fillFactor) + 1);
+//      List<RecordId> rrids = rids.subList((int) Math.ceil(2 * d * fillFactor), (int) Math.ceil(2 * d * fillFactor) + 1);
+
+        // create new right node after splitting
+        LeafNode right = new LeafNode(metadata, rkeys, rrids, rightSibling);
+        // update this node's info
+        int pageNum = right.getPage().getPageNum();
+        rightSibling = Optional.of(pageNum);
+//        right.bulkLoad(data, fillFactor);
+        sync();
+        return Optional.of(new Pair(rkeys.get(0), pageNum));
+      }
+    }
+    sync();
+    return Optional.empty();
   }
 
   // See BPlusNode.remove.
