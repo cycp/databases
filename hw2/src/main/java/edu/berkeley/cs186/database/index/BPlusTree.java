@@ -260,6 +260,7 @@ public class BPlusTree {
             children.add(root.getPage().getPageNum());
             children.add(o.get().getSecond());
             this.root = new InnerNode(metadata, keys, children);
+            writeHeader(headerPage.getByteBuffer());
         }
     }
 
@@ -297,6 +298,7 @@ public class BPlusTree {
                 children.add(leftPageNum); // l page first
                 children.add(pageNum); // r page
                 root = new InnerNode(metadata, keys, children);
+                writeHeader(headerPage.getByteBuffer());
             }
         }
     }
