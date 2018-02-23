@@ -234,8 +234,8 @@ public class BPlusTree {
      */
     public Iterator<RecordId> scanGreaterEqual(DataBox key) {
       typecheck(key);
-        LeafNode start = root.get(key);
-        return new BPlusTreeIterator(start.scanGreaterEqual(key), start);
+        LeafNode leaf = root.get(key);
+        return new BPlusTreeIterator(leaf.scanGreaterEqual(key), leaf);
     }
 
     /**
@@ -260,7 +260,6 @@ public class BPlusTree {
             children.add(root.getPage().getPageNum());
             children.add(o.get().getSecond());
             this.root = new InnerNode(metadata, keys, children);
-//            writeHeader(headerPage.getByteBuffer());
         }
     }
 
@@ -295,10 +294,9 @@ public class BPlusTree {
                 List<DataBox> keys = new ArrayList<>();
                 keys.add(key);
                 List<Integer> children = new ArrayList<>();
-                children.add(leftPageNum);
+                children.add(leftPageNum); // l page first
                 children.add(pageNum); // r page
                 root = new InnerNode(metadata, keys, children);
-//            writeHeader(headerPage.getByteBuffer());
             }
         }
     }

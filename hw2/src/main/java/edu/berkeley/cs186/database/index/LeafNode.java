@@ -144,13 +144,13 @@ class LeafNode extends BPlusNode {
   public Optional<Pair<DataBox, Integer>> put(DataBox key, RecordId rid)
       throws BPlusTreeException {
     if (getKeys().contains(key)) {
-      throw new BPlusTreeException();
+      throw new BPlusTreeException("duplicate key");
     }
 //    int index = InnerNode.numLessThanEqual(key, keys);
 //    keys.add(index, key);
-//    rids.add(index, rid);
     keys.add(key);
     Collections.sort(keys);
+    // get same index for insertion of rid
     int ind = keys.indexOf(key);
     rids.add(ind, rid);
 
@@ -159,12 +159,9 @@ class LeafNode extends BPlusNode {
       sync();
       return Optional.empty();
     } else {
-      List<DataBox> rkeys = new ArrayList<>();
-      List<RecordId> rrids = new ArrayList<>();
-//      List<DataBox> lkeys = keys.subList(0, d);
-//      List<RecordId> lrids = rids.subList(0, d);
-      rkeys = keys.subList(d, keys.size());
-      rrids = rids.subList(d, rids.size());
+      List<DataBox> rkeys = keys.subList(d, keys.size());
+      List<RecordId> rrids = rids.subList(d, rids.size());
+      // reassign keys/rids for this node
       keys = keys.subList(0,d);
       rids = rids.subList(0,d);
 
@@ -185,13 +182,11 @@ class LeafNode extends BPlusNode {
     throws BPlusTreeException {
 
     int d = metadata.getOrder();
-    int fillnum = (int)Math.ceil(fillFactor*2*d);
     while (data.hasNext()) {
       Pair<DataBox, RecordId> pair = data.next();
 
       DataBox key = pair.getFirst();
       RecordId rid = pair.getSecond();
-//      int index = InnerNode.numLessThanEqual(key, keys);
       keys.add(key);
       Collections.sort(keys);
       int ind = keys.indexOf(key);
@@ -199,7 +194,7 @@ class LeafNode extends BPlusNode {
 //      rids.add(rid);
 
 
-      if (keys.size() > fillnum) { // split
+      if (keys.size() > (int)Math.ceil(fillFactor*2*d)) { // split
         List<DataBox> rkeys = new ArrayList<>();
         List<RecordId> rrids = new ArrayList<>();
         rkeys.add(keys.get(keys.size() - 1));
@@ -215,7 +210,6 @@ class LeafNode extends BPlusNode {
 
         // create new right node after splitting
         LeafNode right = new LeafNode(metadata, rkeys, rrids, rightSibling);
-        // update this node's info
         int pageNum = right.getPage().getPageNum();
         rightSibling = Optional.of(pageNum);
 //        right.bulkLoad(data, fillFactor);
@@ -230,7 +224,7 @@ class LeafNode extends BPlusNode {
   // See BPlusNode.remove.
   @Override
   public void remove(DataBox key) {
-    if (keys.indexOf(key) >= 0) {
+    if (keys.indexOf(key) >= 0) { //not -1 for array out of bounds
       rids.remove(keys.indexOf(key));
       keys.remove(key);
     }

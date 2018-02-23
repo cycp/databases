@@ -68,8 +68,7 @@ class InnerNode extends BPlusNode {
   // See BPlusNode.get.
   @Override
   public LeafNode get(DataBox key) {
-    int index = numLessThanEqual(key, keys);
-    return getChild(index).get(key);
+    return getChild(numLessThanEqual(key, keys)).get(key);
   }
 
   // See BPlusNode.getLeftmostLeaf.
@@ -82,12 +81,11 @@ class InnerNode extends BPlusNode {
   @Override
   public Optional<Pair<DataBox, Integer>> put(DataBox key, RecordId rid)
       throws BPlusTreeException {
-    int index = numLessThanEqual(key, keys);
-
-    BPlusNode b = getChild(index);
+    BPlusNode b = getChild(numLessThanEqual(key, keys));
     Optional<Pair<DataBox, Integer>> o = b.put(key, rid);
 
     int d = metadata.getOrder();
+    // child split
     if (o.isPresent()) {
       Pair<DataBox, Integer> pair = o.get();
       DataBox k = pair.getFirst();
@@ -98,7 +96,7 @@ class InnerNode extends BPlusNode {
       children.add(ind+1, pageNum);
 //      children.add(pageNum);
     }
-    if (keys.size() > (2 * d)) { // split
+    if (keys.size() > (2 * d)) { // this node splits
       DataBox splitkey = keys.get(d);
       List<DataBox> rkeys = keys.subList(d + 1, keys.size());
       keys = keys.subList(0, d);
@@ -121,22 +119,20 @@ class InnerNode extends BPlusNode {
       throws BPlusTreeException {
 
     int d = metadata.getOrder();
-    int fillnum = (int)Math.ceil(2*d*fillFactor);
     while (data.hasNext()) {
       Optional o = getChild(children.size() - 1).bulkLoad(data, fillFactor);
-
       if (o.isPresent()) {
         Pair<DataBox, Integer> pair = (Pair) o.get();
         DataBox key = pair.getFirst();
         int pageNum = pair.getSecond();
         keys.add(key);
-        Collections.sort(keys);
+        Collections.sort(keys); // not necessary but just in case?
         int ind = keys.indexOf(key);
-//        children.add(ind, pageNum);
+//        children.add(ind, pageNum); // also not necessary if keys are sorted
         children.add(pageNum);
       }
       if (keys.size() > (2 * d)) { // split
-        DataBox splitkey = keys.get(d);
+        DataBox mid = keys.get(d); // mid key
         List<DataBox> rkeys = keys.subList(d + 1, keys.size());
         keys = keys.subList(0, d);
 
@@ -145,7 +141,7 @@ class InnerNode extends BPlusNode {
 
         InnerNode n = new InnerNode(metadata, rkeys, rchildren);
         sync();
-        return Optional.of(new Pair(splitkey, n.getPage().getPageNum()));
+        return Optional.of(new Pair(mid, n.getPage().getPageNum()));
       }
     }
     // no more data
@@ -156,8 +152,7 @@ class InnerNode extends BPlusNode {
   // See BPlusNode.remove.
   @Override
   public void remove(DataBox key) {
-    BPlusNode n = getChild((numLessThanEqual(key, keys)));
-    n.remove(key);
+    getChild((numLessThanEqual(key, keys))).remove(key);
   }
 
   // Helpers ///////////////////////////////////////////////////////////////////
