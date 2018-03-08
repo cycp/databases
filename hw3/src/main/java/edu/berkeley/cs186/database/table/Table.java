@@ -436,6 +436,10 @@ public class Table implements Iterable<Record>, Closeable {
    */
   public class RIDPageIterator implements BacktrackingIterator<RecordId> {
     //member variables go here
+    byte[] bitmap;
+    int currBit;
+    int pageNum;
+    int markedBit;
 
     /**
      * The following method signature is provided for guidance, but not necessary. Feel free to
@@ -443,23 +447,41 @@ public class Table implements Iterable<Record>, Closeable {
      */
 
     public RIDPageIterator(Page page) {
-      throw new UnsupportedOperationException("hw3: TODO");
+      this.bitmap = getBitMap(page);
+      this.currBit = 0;
+      this.pageNum = page.getPageNum();
+      this.markedBit = 0;
+//      throw new UnsupportedOperationException("hw3: TODO");
     }
 
     public boolean hasNext() {
-      throw new UnsupportedOperationException("hw3: TODO");
+      for (int i = currBit; i < bitmap.length * 8; i++) {
+        if (Bits.getBit(bitmap, i) == Bits.Bit.ONE) {
+          return true;
+        }
+      }
+      return false;
+//      throw new UnsupportedOperationException("hw3: TODO");
     }
 
     public RecordId next() {
-      throw new UnsupportedOperationException("hw3: TODO");
+      while (Bits.getBit(bitmap, currBit) == Bits.Bit.ZERO) {
+        currBit++;
+      }
+      return new RecordId(pageNum, (short)currBit++);
+//      throw new UnsupportedOperationException("hw3: TODO");
     }
 
     public void mark() {
-      throw new UnsupportedOperationException("hw3: TODO");
+      if (currBit > 0) {
+        markedBit = currBit - 1;
+      }
+//      throw new UnsupportedOperationException("hw3: TODO");
     }
 
     public void reset() {
-      throw new UnsupportedOperationException("hw3: TODO");
+      currBit = markedBit;
+//      throw new UnsupportedOperationException("hw3: TODO");
     }
   }
 
@@ -505,7 +527,8 @@ public class Table implements Iterable<Record>, Closeable {
    * - nextRecordId is the next RecordId that next() will return.
    *
    * In addition to these, we maintain some state to help with the
-   * implementation of mark() and reset(); you should not need to use these
+   * implementation of
+   * () and reset(); you should not need to use these
    * for implementing next() and hasNext().
    */
   public class RIDBlockIterator implements BacktrackingIterator<RecordId> {
