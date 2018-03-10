@@ -55,26 +55,43 @@ public class PNLJOperator extends JoinOperator {
      * You're free to use these member variables, but you're not obligated to.
      */
 
-    private Iterator<Page> leftIterator = null;
-    private Iterator<Page> rightIterator = null;
+    private Iterator<Page> leftPageIterator = null; // left/outer relation page iter
     private Page currLeftPage = null;
-    private Iterator<Page> leftBlockIterator = null;
+    private Iterator<Page> rightPageIterator = null; // right relation page iter
+    private Page currRightPage = null;
+
+    private BacktrackingIterator<Record> leftRecordIterator = null;
+    private BacktrackingIterator<Record> rightRecordIterator = null;
+
+    private Record leftRecord = null;
+    private Record rightRecord = null;
+    private Record nextRecord = null;
 
 
-    //private BacktrackingIterator<Record> leftRecordIterator = null;
-//    private BacktrackingIterator<Record> rightRecordIterator = null;
-    //private Record leftRecord = null;
-    //private Record nextRecord = null;
+
 
     public PNLJIterator() throws QueryPlanException, DatabaseException {
       super();
-      this.leftIterator = getPageIterator(this.getLeftTableName());
-      leftIterator.next(); // header page
-      this.currLeftPage = leftIterator.next(); // start page
-      this.rightIterator = getPageIterator(this.getRightTableName());
-      rightIterator.next();
+      // get page iterators and set current pages to after the header pgs
+      this.leftPageIterator = getPageIterator(this.getLeftTableName());
+      leftPageIterator.next();
+      this.currLeftPage = leftPageIterator.next();
+      this.rightPageIterator = getPageIterator(this.getRightTableName());
+      rightPageIterator.next();
+      this.currRightPage = rightPageIterator.next();
 
-      this.leftBlockIterator = getBlockIterator(this.getLeftTableName(), currLeftPage); // what do i put here
+      // get record iterator
+      this.leftRecordIterator = getBlockIterator(getLeftTableName(), new Page[]{this.currLeftPage});
+      this.rightRecordIterator = getBlockIterator(getRightTableName(), new Page[]{this.currRightPage});
+
+
+//      this.leftBlockIterator = getBlockIterator(this.getLeftTableName(), new Page[] {this.currLeftPage}); // what do i put here
+
+
+
+      // get record in right block.
+      // iterate over pages in left page match with right block page
+      // get next left page; repeat
 
 //      throw new UnsupportedOperationException("hw3: TODO");
     }
@@ -85,7 +102,60 @@ public class PNLJOperator extends JoinOperator {
      * @return true if this iterator has another record to yield, otherwise false
      */
     public boolean hasNext() {
-      throw new UnsupportedOperationException("hw3: TODO");
+      // return next record
+      if (nextRecord != null) {
+        return true;
+      }
+
+      // if no next record, we must calculate the next record...
+
+      // if L has another record in the current page, update current left record
+      if (this.leftRecordIterator.hasNext()) {
+        this.leftRecord = this.leftRecordIterator.next();
+      } else {
+        // if L page is empty, we must get the next page...
+        // if L has another page, get that page and mark the first record so we can outer loop over it for every rec in R
+        if (this.leftPageIterator.hasNext()) {
+          try {
+            this.currLeftPage = this.leftPageIterator.next();
+            this.leftRecordIterator = getBlockIterator(this.getLeftTableName(), new Page[]{this.currLeftPage});
+            leftRecordIterator.mark();
+            // catch exception from getBlockIterator
+          } catch (DatabaseException e) {
+            return false;
+          }
+          // if the new page has records, update current left record
+          if (this.leftRecordIterator.hasNext()) {
+            this.leftRecord = this.leftRecordIterator.next();
+            // else outer loop is done so ret false
+          } else return false;
+        } else return false; // necessary?
+      }
+
+      // at this point, leftRecord should have a record
+
+      // get next record from R
+      if (this.rightRecordIterator.hasNext()) {
+        this.rightRecord = this.rightRecordIterator.next();
+        // if we've gone through all of current R page, get next R page
+      } else {
+        if (this.rightPageIterator.hasNext()) {
+          try {
+            this.currRightPage = this.rightPageIterator.next();
+            this.rightRecordIterator = getBlockIterator(this.getRightTableName(), new Page[]{this.currRightPage});
+          } catch (DatabaseException e) {
+            return false;
+          }
+          // if new page has records, update current right record
+          if (this.rightRecordIterator.hasNext()) {
+            this.rightRecord = this.rightRecordIterator.next();
+          } else return false;
+        } // if we've gone through all R pages, we should start over the outer loop with new L page
+
+        return false;
+      }
+
+//      throw new UnsupportedOperationException("hw3: TODO");
     }
 
     /**
@@ -95,7 +165,13 @@ public class PNLJOperator extends JoinOperator {
      * @throws NoSuchElementException if there are no more Records to yield
      */
     public Record next() {
-      throw new UnsupportedOperationException("hw3: TODO");
+      if (this.nextRecord != null) {
+        Record r = this.nextRecord;
+        this.nextRecord = null;
+        return r;
+      }
+      throw new NoSuchElementException("No more records to yield");
+//      throw new UnsupportedOperationException("hw3: TODO");
     }
 
     public void remove() {
