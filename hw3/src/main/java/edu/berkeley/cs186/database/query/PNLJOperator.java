@@ -57,9 +57,12 @@ public class PNLJOperator extends JoinOperator {
 
     private Iterator<Page> leftIterator = null;
     private Iterator<Page> rightIterator = null;
-    private
+    private Page currLeftPage = null;
+    private Iterator<Page> leftBlockIterator = null;
+
+
     //private BacktrackingIterator<Record> leftRecordIterator = null;
-    private BacktrackingIterator<Record> rightRecordIterator = null;
+//    private BacktrackingIterator<Record> rightRecordIterator = null;
     //private Record leftRecord = null;
     //private Record nextRecord = null;
 
@@ -67,8 +70,11 @@ public class PNLJOperator extends JoinOperator {
       super();
       this.leftIterator = getPageIterator(this.getLeftTableName());
       leftIterator.next(); // header page
+      this.currLeftPage = leftIterator.next(); // start page
       this.rightIterator = getPageIterator(this.getRightTableName());
       rightIterator.next();
+
+      this.leftBlockIterator = getBlockIterator(this.getLeftTableName(), currLeftPage); // what do i put here
 
 //      throw new UnsupportedOperationException("hw3: TODO");
     }
