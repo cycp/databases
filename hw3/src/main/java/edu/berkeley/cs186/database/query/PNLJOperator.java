@@ -55,16 +55,22 @@ public class PNLJOperator extends JoinOperator {
      * You're free to use these member variables, but you're not obligated to.
      */
 
-    //private Iterator<Page> leftIterator = null;
-    //private Iterator<Page> rightIterator = null;
+    private Iterator<Page> leftIterator = null;
+    private Iterator<Page> rightIterator = null;
+    private
     //private BacktrackingIterator<Record> leftRecordIterator = null;
-    //private BacktrackingIterator<Record> rightRecordIterator = null;
+    private BacktrackingIterator<Record> rightRecordIterator = null;
     //private Record leftRecord = null;
     //private Record nextRecord = null;
 
     public PNLJIterator() throws QueryPlanException, DatabaseException {
       super();
-      throw new UnsupportedOperationException("hw3: TODO");
+      this.leftIterator = getPageIterator(this.getLeftTableName());
+      leftIterator.next(); // header page
+      this.rightIterator = getPageIterator(this.getRightTableName());
+      rightIterator.next();
+
+//      throw new UnsupportedOperationException("hw3: TODO");
     }
 
     /**
