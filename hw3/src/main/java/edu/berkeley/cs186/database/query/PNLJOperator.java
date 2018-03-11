@@ -79,13 +79,19 @@ public class PNLJOperator extends JoinOperator {
       this.leftPageIterator = getPageIterator(this.getLeftTableName());
       leftPageIterator.next();
 //      this.currLeftPage = leftPageIterator.next();
-      this.rightPageIterator = getPageIterator(this.getRightTableName());
-      rightPageIterator.next();
-      this.currRightPage = rightPageIterator.next();
+
+//      rightPageIterator = null;
+      leftRecordIterator = null;
+      rightRecordIterator = null;
+      leftRecord = null;
+      nextRecord = null;
+//      this.rightPageIterator = getPageIterator(this.getRightTableName());
+//      rightPageIterator.next();
+//      this.currRightPage = rightPageIterator.next();
 
       // get record iterator
-      this.leftRecordIterator = getBlockIterator(getLeftTableName(), new Page[]{this.currLeftPage});
-      this.rightRecordIterator = getBlockIterator(getRightTableName(), new Page[]{this.currRightPage});
+//      this.leftRecordIterator = getBlockIterator(getLeftTableName(), new Page[]{this.currLeftPage});
+//      this.rightRecordIterator = getBlockIterator(getRightTableName(), new Page[]{this.currRightPage});
 
 //      throw new UnsupportedOperationException("hw3: TODO");
     }
@@ -106,23 +112,24 @@ public class PNLJOperator extends JoinOperator {
 
         if (this.leftRecord == null) {
           // if we're not done with R (there are more pages)
-          if (// this.rightPageIterator != null &&
+          if (this.rightPageIterator != null &&
                   this.rightPageIterator.hasNext()) {
-            // reset to beginning of L page (with next R page)
-            this.leftRecordIterator.reset();
-            this.leftRecord = this.leftRecordIterator.next(); // should always be true??
-            //          if (this.leftRecordIterator.hasNext()) {
-            //            this.leftRecord = this.leftRecordIterator.next();
-            //          }
-
-            // get next R page
             try {
               this.currRightPage = this.rightPageIterator.next(); // what if no next?
               this.rightRecordIterator = getBlockIterator(this.getRightTableName(), new Page[]{this.currRightPage});
-//              this.newPage = true;
+              this.newPage = true;
             } catch (DatabaseException e) { // Database Exception or No Other Element
               return false;
             }
+            // reset to beginning of L page (with next R page)
+            this.leftRecordIterator.reset();
+            this.leftRecord = this.leftRecordIterator.next(); // should always be true??
+//            if (this.leftRecordIterator.hasNext()) {
+//              this.leftRecord = this.leftRecordIterator.next();
+//            }
+
+            // get next R page
+
             // else, we've reached the end of R with current L page, so we should start over from first R page with next L page
           } else if (//this.leftPageIterator != null &&
                   this.leftPageIterator.hasNext()) {
@@ -137,6 +144,11 @@ public class PNLJOperator extends JoinOperator {
               } else return false; // else, outer loop is done so ret false
               this.leftRecordIterator.mark();
 
+              rightPageIterator = PNLJOperator.this.getPageIterator(getRightTableName());
+              rightPageIterator.next(); // Throw away header
+              currRightPage = rightPageIterator.next();
+              rightRecordIterator = PNLJOperator.this.getBlockIterator(getRightTableName(), new Page[]{currRightPage});
+              newPage = true;
 //              this.currRightPage = this.rightPageIterator.next();
               // catch exception from getBlockIterator
             } catch (DatabaseException e) {
@@ -162,7 +174,8 @@ public class PNLJOperator extends JoinOperator {
             return true;
           }
         }
-        while (this.leftRecordIterator != null && this.leftRecordIterator.hasNext()) {
+        while (//this.leftRecordIterator != null &&
+                this.leftRecordIterator.hasNext()) {
           // iterate over every R record for every L page
           // for every L record, we iterate through all R records in the page so we should reset R rec iterator
           this.leftRecord = this.leftRecordIterator.next();
@@ -173,6 +186,7 @@ public class PNLJOperator extends JoinOperator {
         // set leftRec to null to indicate this
         this.leftRecord = null;
       }
+    }
 
 
 
@@ -204,7 +218,7 @@ public class PNLJOperator extends JoinOperator {
 
 //      // at this point, leftRecord should have a record
 //      throw new UnsupportedOperationException("hw3: TODO");
-    }
+//    }
 
     /**
      * Yields the next record of this iterator.
