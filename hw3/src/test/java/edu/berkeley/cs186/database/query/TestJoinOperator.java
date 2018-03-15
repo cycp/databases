@@ -275,7 +275,7 @@ public class TestJoinOperator {
   }
 
 
-  @Test(timeout=10000)
+  @Test(timeout=Integer.MAX_VALUE)
   public void testSortMergeJoinUnsortedInputs() throws QueryPlanException, DatabaseException, IOException {
     TestSourceOperator sourceOperator = new TestSourceOperator();
     File tempDir = tempFolder.newFolder("joinTest");
@@ -360,7 +360,15 @@ public class TestJoinOperator {
       }
       Record r = outputIterator.next();
       assertEquals(r, expectedRecord);
+//      try {
+//        assertEquals(r, expectedRecord);
+//      } catch (AssertionError e) {
+//        System.out.println(numRecords + " here");
+//      }
       numRecords++;
+//      if (numRecords == 143) {
+//        System.out.println("here");
+//      }
     }
 
     assertEquals(288*288, numRecords);

@@ -591,7 +591,9 @@ public class Table implements Iterable<Record>, Closeable {
     }
 
     public RecordId next() {
-      prevRecordId = blockIter.next();
+      if (this.hasNext()) {
+        prevRecordId = blockIter.next();
+      }
       return prevRecordId;
 //      throw new UnsupportedOperationException("hw3: TODO");
     }
