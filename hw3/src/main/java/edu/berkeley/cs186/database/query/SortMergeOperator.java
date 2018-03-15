@@ -124,37 +124,38 @@ public class SortMergeOperator extends JoinOperator {
       // compare the L and R until equality
       while (this.comparator.compare(this.leftRecord, this.rightRecord) != 0) {
         // L < R --> advance L
-        while (this.comparator.compare(this.leftRecord, this.rightRecord) < 0) {
-          if (!this.leftIterator.hasNext()) {
-            return false;
-          }
-          this.leftRecord = this.leftIterator.next();
-          this.marked = false;
-          this.rightIterator.reset();
-        }
-        // L > R --> advance R
-        while (this.comparator.compare(this.leftRecord, this.rightRecord) > 0) {
-          if (!this.rightIterator.hasNext()) {
-            return false;
-          }
-          this.rightRecord = this.rightIterator.next();
-        }
-      }
-//        if (this.comparator.compare(this.leftRecord, this.rightRecord) < 0) {
+//        while (this.comparator.compare(this.leftRecord, this.rightRecord) < 0) {
 //          if (!this.leftIterator.hasNext()) {
 //            return false;
 //          }
 //          this.leftRecord = this.leftIterator.next();
+//          this.marked = false;
 //          this.rightIterator.reset();
-//          this.rightRecord = this.rightIterator.next();
-//        } else {
+//        }
+//        // L > R --> advance R
+//        while (this.comparator.compare(this.leftRecord, this.rightRecord) > 0) {
 //          if (!this.rightIterator.hasNext()) {
 //            return false;
 //          }
-//
 //          this.rightRecord = this.rightIterator.next();
-//          this.marked = false;
 //        }
+//      }
+        if (this.comparator.compare(this.leftRecord, this.rightRecord) < 0) {
+          if (!this.leftIterator.hasNext()) {
+            return false;
+          }
+          this.leftRecord = this.leftIterator.next();
+          this.rightIterator.reset();
+          this.rightRecord = this.rightIterator.next();
+        } else {
+          if (!this.rightIterator.hasNext()) {
+            return false;
+          }
+
+          this.rightRecord = this.rightIterator.next();
+          this.marked = false;
+        }
+      }
 
       if (!this.marked) {
         this.rightIterator.mark();
