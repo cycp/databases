@@ -95,7 +95,7 @@ public class SortOperator  {
    * sorting on currently unmerged from run i.
    */
   public Run mergeSortedRuns(List<Run> runs) throws DatabaseException {
-    PriorityQueue<Pair<Record, Integer>> q = new PriorityQueue<>();
+    PriorityQueue<Pair<Record, Integer>> q = new PriorityQueue<>(new RecordPairComparator());
     List<Iterator<Record>> iterators = new ArrayList<>();
     for (int i = 0; i < runs.size(); i++) {
       Iterator<Record> iter = runs.get(i).iterator();
