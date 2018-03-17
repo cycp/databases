@@ -85,9 +85,6 @@ public class BNLJOperator extends JoinOperator {
       super();
       this.leftPageIterator = getPageIterator(this.getLeftTableName());
       leftPageIterator.next();
-//      this.currLeftPage = leftPageIterator.next();
-
-//      rightPageIterator = null;
       leftRecordIterator = null;
       rightRecordIterator = null;
       leftRecord = null;
@@ -135,7 +132,7 @@ public class BNLJOperator extends JoinOperator {
             resetLeftRecord();
 
             // else, we've reached the end of R with current L page, so we should start over from first R page with next L page
-          } else if (//this.leftPageIterator != null &&
+          } else if (this.leftPageIterator != null &&
                   this.leftPageIterator.hasNext()) {
             // if L has another page, get that page and mark the first record so we can outer loop over it for every rec in R
             try {
@@ -171,7 +168,7 @@ public class BNLJOperator extends JoinOperator {
             return true;
           }
         }
-        while (//this.leftRecordIterator != null &&
+        while (this.leftRecordIterator != null &&
                 this.leftRecordIterator.hasNext()) {
           // iterate over every R record for every L page
           // for every L record, we iterate through all R records in the page so we should reset R rec iterator

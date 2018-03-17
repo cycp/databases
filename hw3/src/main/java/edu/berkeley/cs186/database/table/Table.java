@@ -435,7 +435,6 @@ public class Table implements Iterable<Record>, Closeable {
    * should function.
    */
   public class RIDPageIterator implements BacktrackingIterator<RecordId> {
-    //member variables go here
     private byte[] bitmap;
     private int currBit;
     private int pageNum;
@@ -455,8 +454,8 @@ public class Table implements Iterable<Record>, Closeable {
     }
 
     public boolean hasNext() {
-      for (int i = currBit; i < bitmap.length * 8; i++) {
-        if (Bits.getBit(bitmap, i) == Bits.Bit.ONE) {
+      for (int i = this.currBit; i < this.bitmap.length * 8; i++) {
+        if (Bits.getBit(this.bitmap, i) == Bits.Bit.ONE) {
           return true;
         }
       }
@@ -465,22 +464,22 @@ public class Table implements Iterable<Record>, Closeable {
     }
 
     public RecordId next() {
-      while (Bits.getBit(bitmap, currBit) == Bits.Bit.ZERO) {
-        currBit++;
+      while (Bits.getBit(this.bitmap, this.currBit) == Bits.Bit.ZERO) {
+        this.currBit++;
       }
-      return new RecordId(pageNum, (short)currBit++);
+      return new RecordId(this.pageNum, (short)this.currBit++);
 //      throw new UnsupportedOperationException("hw3: TODO");
     }
 
     public void mark() {
-      if (currBit > 0) {
-        markedBit = currBit - 1;
+      if (this.currBit > 0) {
+        this.markedBit = this.currBit - 1;
       }
 //      throw new UnsupportedOperationException("hw3: TODO");
     }
 
     public void reset() {
-      currBit = markedBit;
+      this.currBit = this.markedBit;
 //      throw new UnsupportedOperationException("hw3: TODO");
     }
   }
@@ -581,9 +580,9 @@ public class Table implements Iterable<Record>, Closeable {
     }
 
     public boolean hasNext() {
-      if (blockIter != null && blockIter.hasNext()) return true;
-      if (block.hasNext()) {
-        blockIter = new RIDPageIterator(block.next());
+      if (this.blockIter != null && blockIter.hasNext()) return true;
+      if (this.block.hasNext()) {
+        this.blockIter = new RIDPageIterator(block.next());
         return hasNext();
       }
       return false;
@@ -592,9 +591,9 @@ public class Table implements Iterable<Record>, Closeable {
 
     public RecordId next() {
       if (this.hasNext()) {
-        prevRecordId = blockIter.next();
+        this.prevRecordId = this.blockIter.next();
       }
-      return prevRecordId;
+      return this.prevRecordId;
 //      throw new UnsupportedOperationException("hw3: TODO");
     }
 
@@ -627,18 +626,15 @@ public class Table implements Iterable<Record>, Closeable {
         return;
       }
       this.block.reset();
-      // We don't want to get the current page again
       this.block.next();
       this.blockIter = this.markedBlockIter;
       this.blockIter.reset();
-      // If we're at the end of the block, we don't want to repeat the record
       if (!this.block.hasNext()) {
         this.blockIter.next();
         if (this.blockIter.hasNext()) {
           this.blockIter.reset();
         }
       }
-
       this.prevRecordId = null;
       this.nextRecordId = this.markedPrevRecordId;
     }

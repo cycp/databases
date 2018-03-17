@@ -61,10 +61,7 @@ public class SortMergeOperator extends JoinOperator {
 
     public SortMergeIterator() throws QueryPlanException, DatabaseException {
       super();
-//      this.leftSorted = new SortOperator(getTransaction(), getLeftTableName(), new LeftRecordComparator());
-//      this.rightSorted = new SortOperator(getTransaction(), getRightTableName(), new RightRecordComparator());
       this.leftIterator = getRecordIterator(new SortOperator(getTransaction(), getLeftTableName(), new LeftRecordComparator()).sort());
-//      this.leftRecord = this.leftIterator.next();
       this.rightIterator = getRecordIterator(new SortOperator(getTransaction(), getRightTableName(), new RightRecordComparator()).sort());;
 
       this.marked = false;
@@ -90,11 +87,11 @@ public class SortMergeOperator extends JoinOperator {
       if (!this.leftIterator.hasNext() && this.leftRecord == null) {
         return false;
       }
-//
-//      if (!this.marked && !this.newRound) {
-//        this.rightIterator.mark();
-//        this.marked = true;
-//      }
+
+      if (!this.marked && !this.newRound) {
+        this.rightIterator.mark();
+        this.marked = true;
+      }
 
       // initialize L record
       if (this.leftRecord == null) {
@@ -116,11 +113,11 @@ public class SortMergeOperator extends JoinOperator {
       } else {
         this.rightRecord = this.rightIterator.next();
       }
-//      if (!this.marked && this.newRound) {
-//        this.marked = true;
-//        this.newRound = false;
-//        this.rightIterator.mark();
-//      }
+      if (!this.marked && this.newRound) {
+        this.marked = true;
+        this.newRound = false;
+        this.rightIterator.mark();
+      }
       // compare the L and R until equality
       while (this.comparator.compare(this.leftRecord, this.rightRecord) != 0) {
         // L < R --> advance L
@@ -167,77 +164,6 @@ public class SortMergeOperator extends JoinOperator {
       this.nextRecord = new Record(leftValues);
       return true;
     }
-
-
-
-//      if (this.nextRecord != null) {
-//        return true;
-//      }
-//
-//      while (true) {
-//
-//        if (this.leftRecord == null || this.rightRecord == null) return false;
-//
-//        //      if (this.leftRecord == null || this.rightRecord == null) return true;
-//        DataBox leftValue = this.leftRecord.getValues().get(getLeftColumnIndex());
-//        DataBox rightValue = this.rightRecord.getValues().get(getRightColumnIndex());
-//        //      if (leftValue == null || rightValue == null) return false;
-//        //      while (leftValue.compareTo(rightValue) != 0) {
-//        if (leftValue.compareTo(rightValue) < 0) {  // L < R; advance L
-//          if (this.leftIterator.hasNext()) this.leftRecord = this.leftIterator.next();
-//          else this.leftRecord = null;
-//          if (this.marked) {
-//            this.rightIterator.reset();
-//            if (this.rightIterator.hasNext()) this.rightRecord = this.rightIterator.next();
-//            else this.rightRecord = null;
-//          }
-//        } else if (leftValue.compareTo(rightValue) > 0) { // L > R; advance R
-//          if (this.marked) this.marked = false;
-//          if (this.rightIterator.hasNext()) this.rightRecord = this.rightIterator.next();
-//          else this.rightRecord = null;
-//        } else {
-//          if (!this.marked) {
-//            this.marked = true;
-//            this.rightIterator.mark();
-//          }
-//          //      }
-//
-//          // L = R
-//          List<DataBox> leftValues = new ArrayList<>(this.leftRecord.getValues());
-//          //      List<DataBox> rightValues = new ArrayList<>(this.rightRecord.getValues());
-//          leftValues.addAll(this.rightRecord.getValues());
-//          this.nextRecord = new Record(leftValues);
-//          // advance R
-//          if (this.rightIterator.hasNext()) {
-//            this.rightRecord = this.rightIterator.next();
-//            // if we're done with R, advance L and reset R
-//          } else if (this.leftIterator.hasNext()) {
-//            this.leftRecord = this.leftIterator.next();
-//            this.rightIterator.reset();
-//            this.rightRecord = this.rightIterator.next();
-//          } else {
-//            this.leftRecord = null;
-//          }
-//          return true;
-//        }
-//      }
-//    }
-//
-
-
-
-
-
-
-//        leftRecord = (leftRecordIter.hasNext()) ? leftRecordIter.next() : null;
-//      } else if (leftJoinValue.compareTo(rightJoinValue) > 0) { // r > s
-//        if (sMarked) {                                      // Mark becomes invalid
-//          sMarked = false;
-//        }
-//        rightRecord = (rightRecordIter.hasNext()) ? rightRecordIter.next() : null;
-//
-//      } else {
-
 //      throw new UnsupportedOperationException("hw3: TODO");
 
 

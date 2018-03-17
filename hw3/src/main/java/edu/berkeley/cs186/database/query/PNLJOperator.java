@@ -75,12 +75,11 @@ public class PNLJOperator extends JoinOperator {
 
     public PNLJIterator() throws QueryPlanException, DatabaseException {
       super();
-      // get page iterators and set current pages to after the header pgs
+      // get page iterators and ignore header pages
       this.leftPageIterator = getPageIterator(this.getLeftTableName());
       leftPageIterator.next();
 //      this.currLeftPage = leftPageIterator.next();
 
-//      rightPageIterator = null;
       leftRecordIterator = null;
       rightRecordIterator = null;
       leftRecord = null;
@@ -146,7 +145,7 @@ public class PNLJOperator extends JoinOperator {
 
 
             // else, we've reached the end of R with current L page, so we should start over from first R page with next L page
-          } else if (//this.leftPageIterator != null &&
+          } else if (this.leftPageIterator != null &&
                   this.leftPageIterator.hasNext()) {
             // if L has another page, get that page and mark the first record so we can outer loop over it for every rec in R
             try {
