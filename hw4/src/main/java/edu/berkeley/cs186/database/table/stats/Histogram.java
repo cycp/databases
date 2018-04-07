@@ -7,6 +7,7 @@ import java.util.Iterator;
 import edu.berkeley.cs186.database.databox.DataBox;
 import edu.berkeley.cs186.database.query.QueryPlan.PredicateOperator;
 import edu.berkeley.cs186.database.DatabaseException;
+import edu.berkeley.cs186.database.table.RecordIterator;
 import edu.berkeley.cs186.database.table.Table;
 import edu.berkeley.cs186.database.table.Record;
 import edu.berkeley.cs186.database.databox.TypeId;
@@ -128,14 +129,43 @@ public class Histogram {
     // TODO: HW4 implement
 
     //1. first calculate the min and the max values
+    RecordIterator iter = table.iterator();
+    minValue = Integer.MAX_VALUE;
+    maxValue = Integer.MIN_VALUE;
+    while (iter.hasNext()) {
+      float currVal = quantization(iter.next(), attribute);
+      if (currVal < minValue) {
+        minValue = currVal;
+      }
+      if (currVal > maxValue) {
+        maxValue = currVal;
+      }
+    }
 
     //2. calculate the width of each bin
+    width = (maxValue - minValue) / numBuckets;
 
     //3. create each bucket object
+    for (int i = 0; i < numBuckets; i++) {
+      if (i == numBuckets - 1) {
+        buckets[i] = new Bucket(minValue + i * width, (float)Integer.MAX_VALUE);
+      } else {
+        buckets[i] = new Bucket(minValue + i * width, minValue + (i + 1) * width);
+      }
+    }
 
     //4. populate the data using the increment(value) method
+    iter = table.iterator();
+    while (iter.hasNext()) {
+      float currVal = quantization(iter.next(), attribute);
+      if (width == 0) {
+        buckets[numBuckets - 1].increment(currVal);
+      } else {
+        buckets[bucketIndex(currVal)].increment(currVal);
+      }
+    }
 
-    throw new NotImplementedException();
+//    throw new NotImplementedException();
 
   }
 
@@ -308,10 +338,16 @@ public class Histogram {
     float [] result = new float[this.numBuckets];
 
     // TODO: HW4 implement;
+    for (int i = 0; i < this.numBuckets; i++) {
+      int index = bucketIndex(qvalue);
+      if (i == index) {
+        result[i] = (float)1.0/buckets[i].getDistinctCount();
+      } else {
+        result[i] = 0;
+      }
+    }
+    return result;
 
-    throw new NotImplementedException();
-
-    // return result;
   }
 
 
@@ -325,10 +361,15 @@ public class Histogram {
 
     // TODO: HW4 implement;
 
-    throw new NotImplementedException();
-
-
-    // return result;
+    for (int i = 0; i < this.numBuckets; i++) {
+      int index = bucketIndex(qvalue);
+      if (i == index) {
+        result[i] = (float) (1.0 - (1.0/buckets[i].getDistinctCount()));
+      } else {
+        result[i] = 1;
+      }
+    }
+    return result;
   }
 
 
@@ -341,8 +382,19 @@ public class Histogram {
     float [] result = new float[this.numBuckets];
 
     // TODO: HW4 implement;
+    for (int i = 0; i < this.numBuckets; i++) {
+      int index = bucketIndex(qvalue);
+      if (i == index) {
+        result[i] = (buckets[i].getEnd() - qvalue) / width;
+      } else if (i < index) {
+        result[i] = 0;
+      } else {
+        result[i] = 1;
+      }
+    }
+    return result;
 
-    throw new NotImplementedException();
+//    throw new NotImplementedException();
 
 
     // return result;
@@ -358,10 +410,20 @@ public class Histogram {
     float [] result = new float[this.numBuckets];
 
     // TODO: HW4 implement;
+    for (int i = 0; i < this.numBuckets; i++) {
+      int index = bucketIndex(qvalue);
+      if (i == index) {
+        result[i] = (qvalue - buckets[i].getStart()) / width;
+      } else if (i < index) {
+        result[i] = 1;
+      } else {
+        result[i] = 0;
+      }
+    }
+    return result;
 
-    throw new NotImplementedException();
+//    throw new NotImplementedException();
 
-    // return result;
   }
 
 
