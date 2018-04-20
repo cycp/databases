@@ -35,6 +35,7 @@ public class LockManager {
     public void acquire(Transaction transaction, Resource resource, LockType lockType)
             throws IllegalArgumentException {
         // HW5: To do
+
         return;
     }
 
