@@ -144,9 +144,9 @@ public class LockManager {
         }
         ResourceLock rl = resourceToLock.get(resource);
         ArrayList<Request> locks = new ArrayList<>(rl.lockOwners);
-        for (Request req : locks) {
+        for (Request req : rl.lockOwners) {
             if (req.transaction == transaction) {
-                rl.lockOwners.remove(req); // release request
+                locks.remove(req); // release request
                 holdsLock = true;
             }
         }
@@ -166,15 +166,17 @@ public class LockManager {
      private void promote(Resource resource) {
          // HW5: To do
          ResourceLock rl = resourceToLock.get(resource);
+         LinkedList<Request> ll = new LinkedList<>(rl.requestersQueue);
          for (Request req : rl.requestersQueue) {
              if (compatible(resource, req.transaction, req.lockType)) {
-                 Request request = rl.requestersQueue.pop();
+                 Request request = ll.pop();
                  rl.lockOwners.add(request);
                  request.transaction.wake();
              } else {
                  return;
              }
          }
+         rl.requestersQueue = ll;
          return;
      }
 
