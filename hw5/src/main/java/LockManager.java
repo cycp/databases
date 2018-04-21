@@ -47,6 +47,13 @@ public class LockManager {
         }
         ResourceLock rl = resourceToLock.get(resource);
         Request req = new Request(transaction, lockType);
+//        if (lockType == LockType.X) { // checking for upgrade to prioritize
+//            for (Request request : rl.lockOwners) {
+//                if (request.transaction == transaction && request.lockType == LockType.S) {
+//                    if (compatible(resource, transaction, lock))
+//                }
+//            }
+//        }
         if (compatible(resource, transaction, lockType)) {
             rl.lockOwners.add(req);
         } else {
@@ -66,8 +73,21 @@ public class LockManager {
     private boolean compatible(Resource resource, Transaction transaction, LockType lockType) {
         // HW5: To do
         ResourceLock rl = resourceToLock.get(resource);
-//        if (rl == null) return true;
         if (lockType == LockType.S) {
+//            if (resource.getResourceType() == Resource.ResourceType.PAGE) {
+//                Page page = (Page) resource;
+//                ResourceLock tablerl = resourceToLock.get(page.getTable());
+//
+//                boolean parentHoldsIntent = false;
+//                for (Request req : tablerl.lockOwners) {
+//                    if (req.transaction == transaction && (req.lockType == LockType.IS || req.lockType == LockType.IX)) {
+//                        parentHoldsIntent = true;
+//                    }
+//                }
+//                if (parentHoldsIntent == false) {
+//                    throw new IllegalArgumentException("Page requested S lock but parent doesn't hold IS");
+//                }
+//        }
             for (Request req : rl.lockOwners) {
                 if (req.lockType == LockType.S && req.transaction == transaction) {
                     throw new IllegalArgumentException("Requested already held lock S");
@@ -88,6 +108,9 @@ public class LockManager {
                 for (Request req : rl.lockOwners) {
                     if (req.lockType == LockType.X && req.transaction == transaction) {
                         throw new IllegalArgumentException("Requested already held lock X");
+                    }
+                    if (req.lockType == LockType.S && req.transaction == transaction) {
+                        return true;
                     }
                 }
             }
