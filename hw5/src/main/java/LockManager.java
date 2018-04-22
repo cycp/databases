@@ -2,6 +2,7 @@ import com.sun.org.apache.regexp.internal.RE;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.concurrent.locks.Lock;
 
@@ -21,9 +22,11 @@ public class LockManager {
     }
 
     private HashMap<Resource, ResourceLock> resourceToLock;
+    private boolean prioritizedUpgrade;
 
     public LockManager() {
         this.resourceToLock = new HashMap<Resource, ResourceLock>();
+        this.prioritizedUpgrade = false;
 
     }
 
@@ -45,21 +48,35 @@ public class LockManager {
         if (resourceToLock.get(resource) == null) {
             resourceToLock.put(resource, new ResourceLock());
         }
+
+        if (resource.getResourceType() == Resource.ResourceType.PAGE) {
+            Page p = (Page) resource;
+            Table t = p.getTable();
+            boolean parentHasLock = false;
+            ResourceLock tablerl = resourceToLock.get(t);
+            if (tablerl == null) throw new IllegalArgumentException("Table doesn't have appropriate intention lock");
+            for (Request req : resourceToLock.get(t).lockOwners) {
+                if (req.transaction == transaction) {
+                    if (lockType == LockType.S && (req.lockType == LockType.IX || req.lockType == LockType.IS)) {
+                        parentHasLock = true;
+                    } else if (lockType == LockType.X && req.lockType == lockType.IX) {
+                        parentHasLock = true;
+                    }
+                }
+            }
+            if (!parentHasLock) throw new IllegalArgumentException("Table doesn't have appropriate intention lock");
+        }
         ResourceLock rl = resourceToLock.get(resource);
         Request req = new Request(transaction, lockType);
-//        if (lockType == LockType.X) { // checking for upgrade to prioritize
-//            for (Request request : rl.lockOwners) {
-//                if (request.transaction == transaction && request.lockType == LockType.S) {
-//                    if (compatible(resource, transaction, lock))
-//                }
-//            }
-//        }
         if (compatible(resource, transaction, lockType)) {
             rl.lockOwners.add(req);
         } else {
-            rl.requestersQueue.add(req);
+            if (!prioritizedUpgrade) {
+                rl.requestersQueue.add(req);
+            }
             transaction.sleep();
         }
+        prioritizedUpgrade = false;
         return;
     }
 
@@ -109,8 +126,14 @@ public class LockManager {
                     if (req.lockType == LockType.X && req.transaction == transaction) {
                         throw new IllegalArgumentException("Requested already held lock X");
                     }
-                    if (req.lockType == LockType.S && req.transaction == transaction) {
+                    if (rl.lockOwners.size() == 1 && req.lockType == LockType.S && req.transaction == transaction) {
+                        transaction.wake();
+                        release(transaction, resource);
                         return true;
+                    } else if (req.transaction == transaction) {
+                        prioritizedUpgrade = true;
+                        rl.requestersQueue.add(0, new Request(transaction, lockType));
+                        return false;
                     }
                 }
             }
@@ -162,6 +185,18 @@ public class LockManager {
         if (transaction.getStatus() == Transaction.Status.Waiting) {
             throw new IllegalArgumentException("Blocked transaction is attempting to release lock");
         }
+        if (resource.getResourceType() == Resource.ResourceType.TABLE) {
+            Table t = (Table) resource;
+            HashSet<Page> pages = (HashSet<Page>) t.getPages();
+            for (Page p : pages) {
+                for (Request req : resourceToLock.get(p).lockOwners) {
+                    if (req.transaction == transaction) {
+                        throw new IllegalArgumentException("Attempting to release table lock without releasing page locks first");
+                    }
+                }
+            }
+        }
+
         if (resourceToLock.get(resource) == null) {
             resourceToLock.put(resource, new ResourceLock());
         }
@@ -196,6 +231,8 @@ public class LockManager {
                  rl.lockOwners.add(request);
                  request.transaction.wake();
              } else {
+                 req.transaction.sleep();
+                 rl.requestersQueue = ll;
                  return;
              }
          }
