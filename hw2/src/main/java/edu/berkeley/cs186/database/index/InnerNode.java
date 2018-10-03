@@ -1,17 +1,15 @@
 package edu.berkeley.cs186.database.index;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import edu.berkeley.cs186.database.common.Pair;
 import edu.berkeley.cs186.database.databox.DataBox;
 import edu.berkeley.cs186.database.databox.Type;
 import edu.berkeley.cs186.database.io.Page;
 import edu.berkeley.cs186.database.table.RecordId;
+
+import javax.xml.crypto.Data;
 
 /**
  * A inner node of a B+ tree. Every inner node in a B+ tree of order d stores
@@ -70,20 +68,48 @@ class InnerNode extends BPlusNode {
   // See BPlusNode.get.
   @Override
   public LeafNode get(DataBox key) {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    return getChild(numLessThanEqual(key, keys)).get(key);
   }
 
   // See BPlusNode.getLeftmostLeaf.
   @Override
   public LeafNode getLeftmostLeaf() {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    return getChild(0).getLeftmostLeaf();
   }
 
   // See BPlusNode.put.
   @Override
   public Optional<Pair<DataBox, Integer>> put(DataBox key, RecordId rid)
       throws BPlusTreeException {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    BPlusNode b = getChild(numLessThanEqual(key, keys));
+    Optional<Pair<DataBox, Integer>> o = b.put(key, rid);
+
+    int d = metadata.getOrder();
+    // child split
+    if (o.isPresent()) {
+      Pair<DataBox, Integer> pair = o.get();
+      DataBox k = pair.getFirst();
+      int pageNum = pair.getSecond();
+      keys.add(k);
+      Collections.sort(keys);
+      int ind = keys.indexOf(k);
+      children.add(ind+1, pageNum);
+//      children.add(pageNum);
+    }
+    if (keys.size() > (2 * d)) { // this node splits
+      DataBox splitkey = keys.get(d);
+      List<DataBox> rkeys = keys.subList(d + 1, keys.size());
+      keys = keys.subList(0, d);
+
+      List<Integer> rchildren = children.subList(children.size() / 2, children.size());
+      children = children.subList(0, children.size() / 2);
+
+      InnerNode n = new InnerNode(metadata, rkeys, rchildren);
+      sync();
+      return Optional.of(new Pair(splitkey, n.getPage().getPageNum()));
+    }
+    sync();
+    return Optional.empty();
   }
 
   // See BPlusNode.bulkLoad.
@@ -91,13 +117,42 @@ class InnerNode extends BPlusNode {
   public Optional<Pair<DataBox, Integer>> bulkLoad(Iterator<Pair<DataBox, RecordId>> data,
                                                    float fillFactor)
       throws BPlusTreeException {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+
+    int d = metadata.getOrder();
+    while (data.hasNext()) {
+      Optional o = getChild(children.size() - 1).bulkLoad(data, fillFactor);
+      if (o.isPresent()) {
+        Pair<DataBox, Integer> pair = (Pair) o.get();
+        DataBox key = pair.getFirst();
+        int pageNum = pair.getSecond();
+        keys.add(key);
+        Collections.sort(keys); // not necessary but just in case?
+        int ind = keys.indexOf(key);
+//        children.add(ind, pageNum); // also not necessary if keys are sorted
+        children.add(pageNum);
+      }
+      if (keys.size() > (2 * d)) { // split
+        DataBox mid = keys.get(d); // mid key
+        List<DataBox> rkeys = keys.subList(d + 1, keys.size());
+        keys = keys.subList(0, d);
+
+        List<Integer> rchildren = children.subList(children.size() / 2, children.size());
+        children = children.subList(0, children.size() / 2);
+
+        InnerNode n = new InnerNode(metadata, rkeys, rchildren);
+        sync();
+        return Optional.of(new Pair(mid, n.getPage().getPageNum()));
+      }
+    }
+    // no more data
+    sync();
+    return Optional.empty();
   }
 
   // See BPlusNode.remove.
   @Override
   public void remove(DataBox key) {
-    throw new UnsupportedOperationException("TODO(hw2): implement.");
+    getChild((numLessThanEqual(key, keys))).remove(key);
   }
 
   // Helpers ///////////////////////////////////////////////////////////////////
