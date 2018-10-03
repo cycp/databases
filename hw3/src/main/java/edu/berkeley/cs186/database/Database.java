@@ -445,9 +445,10 @@ public class Database {
     }
 
     public BacktrackingIterator<Record> getBlockIterator(String tableName, Iterator<Page> block, int maxPages) throws DatabaseException {
-      assert(this.active);
+      assert (this.active);
       return getTable(tableName).blockIterator(block, maxPages);
     }
+
 
     public RecordId updateRecord(String tableName, List<DataBox> values, RecordId rid)  throws DatabaseException {
         return runUpdateRecord(tableName, values, rid);
